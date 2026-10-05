@@ -47,6 +47,7 @@ import com.android.launcher3.model.data.LauncherAppWidgetInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.pm.PackageInstallInfo;
 import com.android.launcher3.shortcuts.ShortcutRequest;
+import com.android.launcher3.shortcuts.SuperIconShortcutHelper;
 import com.android.launcher3.util.ApiWrapper;
 import com.android.launcher3.util.FlagOp;
 import com.android.launcher3.util.IntSet;
@@ -91,6 +92,7 @@ public class PackageUpdatedTask implements ModelUpdateTask {
     @Override
     public void execute(@NonNull ModelTaskController taskController, @NonNull BgDataModel dataModel,
             @NonNull AllAppsList appsList) {
+        SuperIconShortcutHelper.clearCache();
         final Context context = taskController.getContext();
         final IconCache iconCache = taskController.getIconCache();
 

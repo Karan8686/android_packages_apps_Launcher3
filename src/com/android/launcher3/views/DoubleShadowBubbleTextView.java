@@ -106,6 +106,25 @@ public class DoubleShadowBubbleTextView extends BubbleTextView {
         if (shouldDrawAppContrastTile() && !TextUtils.isEmpty(getText())) {
             drawAppContrastTile(canvas);
         }
+        if (isMultiSpan()) {
+            drawMultiSpanSuperIcon(canvas);
+            if (skipDoubleShadow()) {
+                drawMultiSpanLabel(canvas);
+            } else {
+                int alpha = Color.alpha(getCurrentTextColor());
+                getPaint().setShadowLayer(mShadowInfo.getAmbientShadowBlur(), 0, 0,
+                        getTextShadowColor(mShadowInfo.getAmbientShadowColor(), alpha));
+                drawMultiSpanLabel(canvas);
+                getPaint().setShadowLayer(
+                        mShadowInfo.getKeyShadowBlur(),
+                        mShadowInfo.getKeyShadowOffsetX(),
+                        mShadowInfo.getKeyShadowOffsetY(),
+                        getTextShadowColor(mShadowInfo.getKeyShadowColor(), alpha));
+                drawMultiSpanLabel(canvas);
+            }
+            drawDotIfNecessary(canvas);
+            return;
+        }
         // If text is transparent or shadow alpha is 0, don't draw any shadow
         if (skipDoubleShadow()) {
             super.onDraw(canvas);

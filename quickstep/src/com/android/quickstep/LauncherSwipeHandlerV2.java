@@ -258,6 +258,16 @@ public class LauncherSwipeHandlerV2 extends AbsSwipeUpHandler<
             }
 
             @Override
+            public float getEndRadius(RectF cropRectF) {
+                if (workspaceView instanceof com.android.launcher3.BubbleTextView btv
+                        && btv.isMultiSpan()) {
+                    float targetWidth = Math.max(1f, iconLocation.width());
+                    return btv.getIconBackgroundCornerRadius() * (cropRectF.width() / targetWidth);
+                }
+                return super.getEndRadius(cropRectF);
+            }
+
+            @Override
             public void setAnimation(RectFSpringAnim anim) {
                 super.setAnimation(anim);
                 mSiblingAnimation = anim;

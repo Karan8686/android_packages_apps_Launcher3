@@ -418,9 +418,20 @@ public class FloatingIconView extends FrameLayout implements
         final DeviceProfile dp = mLauncher.getDeviceProfile();
         final InsettableFrameLayout.LayoutParams lp =
                 (InsettableFrameLayout.LayoutParams) getLayoutParams();
+        final boolean isMultiSpanSuperIcon =
+                mOriginalIcon instanceof BubbleTextView btv && btv.isMultiSpan();
+        if (isMultiSpanSuperIcon) {
+            BubbleTextView btv = (BubbleTextView) mOriginalIcon;
+            mClipIconView.setMultiSpanSuperIconParams(true, btv.getSpanX(), btv.getSpanY(),
+                    btv.getIconBackgroundCornerRadius());
+        } else {
+            mClipIconView.setMultiSpanSuperIconParams(false, 1, 1, 0f);
+        }
+        final int originalHeight = lp.height;
+        final int originalWidth = lp.width;
         mBadge = badge;
         updateBadgeAlpha();
-        if (mBtvDrawable.getBackground() == null && btvIcon != null) {
+        if (!isMultiSpanSuperIcon && mBtvDrawable.getBackground() == null && btvIcon != null) {
             mBtvDrawable.setBackground(btvIcon.get());
         }
         boolean disableAdaptive =
@@ -436,30 +447,46 @@ public class FloatingIconView extends FrameLayout implements
             mClipIconView.setForegroundAlpha(mAppOpenIconAlpha);
         }
         if (drawable instanceof AdaptiveIconDrawable) {
-            final int originalHeight = lp.height;
-            final int originalWidth = lp.width;
-
             mFinalDrawableBounds.set(0, 0, originalWidth, originalHeight);
 
             float aspectRatio = mLauncher.getDeviceProfile().getDeviceProperties().getAspectRatio();
             if (dp.getDeviceProperties().isLandscape()) {
                 lp.width = (int) Math.max(lp.width, lp.height * aspectRatio);
+                if (isMultiSpanSuperIcon && aspectRatio > 0) {
+                    lp.height = (int) Math.max(lp.height, Math.ceil(originalWidth / aspectRatio));
+                }
             } else {
                 lp.height = (int) Math.max(lp.height, lp.width * aspectRatio);
+                if (isMultiSpanSuperIcon && aspectRatio > 0) {
+                    lp.width = (int) Math.max(lp.width, Math.ceil(originalHeight / aspectRatio));
+                }
             }
             setLayoutParams(lp);
 
             final LayoutParams clipViewLp = (LayoutParams) mClipIconView.getLayoutParams();
             if (mBadge != null) {
-                Rect badgeBounds = new Rect(0, 0, clipViewLp.width, clipViewLp.height);
-                FastBitmapDrawable.setBadgeBounds(mBadge, badgeBounds);
+                if (isMultiSpanSuperIcon) {
+                    BubbleTextView btv = (BubbleTextView) mOriginalIcon;
+                    int baseIconSize = btv.getIconSize() > 0 ? btv.getIconSize()
+                            : dp.getWorkspaceIconProfile().getIconSizePx();
+                    int badgeSize = com.android.launcher3.icons.LauncherIcons
+                            .getBadgeSizeForIconSize(baseIconSize);
+                    int badgePadding = Math.round(8f * getResources().getDisplayMetrics().density);
+                    int badgeLeft = originalWidth - badgeSize - badgePadding;
+                    int badgeTop = originalHeight - badgeSize - badgePadding;
+                    mBadge.setBounds(badgeLeft, badgeTop, badgeLeft + badgeSize,
+                            badgeTop + badgeSize);
+                } else {
+                    Rect badgeBounds = new Rect(0, 0, clipViewLp.width, clipViewLp.height);
+                    FastBitmapDrawable.setBadgeBounds(mBadge, badgeBounds);
+                }
             }
             clipViewLp.width = lp.width;
             clipViewLp.height = lp.height;
             mClipIconView.setLayoutParams(clipViewLp);
         }
 
-        setOriginalDrawableBackground(btvIcon);
+        setOriginalDrawableBackground(isMultiSpanSuperIcon ? null : btvIcon);
         invalidate();
     }
 
@@ -639,7 +666,10 @@ public class FloatingIconView extends FrameLayout implements
         final FastBitmapDrawable btvIcon;
         final Supplier<Drawable> btvDrawableSupplier;
         if (v instanceof BubbleTextView btv) {
-            if (info instanceof ItemInfoWithIcon iiwi && iiwi.shouldShowPendingIcon()) {
+            if (btv.isMultiSpanSuperIcon()) {
+                btvIcon = btv.getIcon();
+                btvDrawableSupplier = null;
+            } else if (info instanceof ItemInfoWithIcon iiwi && iiwi.shouldShowPendingIcon()) {
                 btvIcon = newPendingIcon(iiwi, l, btv.getIconCreationFlagsForInfo(iiwi));
                 btvDrawableSupplier = () -> btvIcon;
             } else {

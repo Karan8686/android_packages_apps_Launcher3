@@ -33,6 +33,7 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.RadialGradient;
@@ -52,7 +53,7 @@ import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.Flags;
 import com.android.launcher3.LauncherPrefsExt;
 import com.android.launcher3.R;
-import com.android.launcher3.widget.RoundedCornerEnforcement;
+import com.android.launcher3.Utilities;
 import com.android.launcher3.celllayout.DelegatedCellDrawing;
 import com.android.launcher3.graphics.ShapeDelegate;
 import com.android.launcher3.graphics.ThemeManager;
@@ -150,80 +151,80 @@ public class PreviewBackground extends DelegatedCellDrawing {
                 }
             };
 
-    static void calculateBackgroundBounds(
+    public static void calculateBackgroundBounds(
             DeviceProfile grid,
             int availableSpaceX,
             int availableSpaceY,
             int topPadding,
             int spanX,
             int spanY,
-            int labelHeight,
-            boolean isWorkspace,
             Rect outBounds) {
         int previewSize = grid.folderIconSizePx;
+        int iconSize = grid.getWorkspaceIconProfile().getIconSizePx();
+
+        Point borderSpace = grid.getWorkspaceIconProfile().getCellLayoutBorderSpacePx();
+        Point cellSize = grid.getWorkspaceIconProfile().getCellSize();
+
+        int cellWidth = availableSpaceX > 0
+                ? (spanX > 1 ? (availableSpaceX - (spanX - 1) * borderSpace.x) / spanX
+                        : availableSpaceX)
+                : (cellSize.x > 0 ? cellSize.x : grid.getWorkspaceIconProfile().getCellWidthPx());
+        int cellHeight = availableSpaceY > 0
+                ? (spanY > 1 ? (availableSpaceY - (spanY - 1) * borderSpace.y) / spanY
+                        : availableSpaceY)
+                : (cellSize.y > 0 ? cellSize.y : grid.getWorkspaceIconProfile().getCellHeightPx());
 
         int backgroundWidth;
         int backgroundHeight;
         int backgroundLeft;
         int backgroundTop;
 
-        if (!isWorkspace) {
+        if (spanX == 1 && spanY == 1) {
             backgroundWidth = previewSize;
             backgroundHeight = previewSize;
-            backgroundLeft = (availableSpaceX - backgroundWidth) / 2;
-            int totalHeight = (labelHeight > 0) ? (previewSize + labelHeight) : previewSize;
-            backgroundTop = Math.max(0, (availableSpaceY - totalHeight) / 2);
+            backgroundLeft = availableSpaceX > 0
+                    ? (availableSpaceX - backgroundWidth) / 2
+                    : (cellWidth - previewSize) / 2;
+            backgroundTop = topPadding + grid.folderIconOffsetYPx;
         } else {
-            int iconSize = grid.getWorkspaceIconProfile().getIconSizePx();
-            int cellWidth = grid.getWorkspaceIconProfile().getCellSize().x;
-            int cellHeight = grid.getWorkspaceIconProfile().getCellSize().y;
-            int cHeight = grid.getWorkspaceIconProfile().getCellHeightPx();
+            // Multi-span enlarged folders and Super Icons (2x2, 2x1, 1x2, etc.)
+            // Match OOS SizeSpacingConfig + OplusPreviewBackground:
+            // Top aligns with row 0 icon top (topPadding + folderIconOffsetYPx)
+            // Bottom aligns with row (spanY - 1) icon bottom
+            if (topPadding <= 0) {
+                int cellPaddingY = grid.getWorkspaceIconProfile().getCellYPaddingPx();
+                if (cellPaddingY <= 0) {
+                    int iconTextHeight = Utilities.calculateTextHeight(
+                            grid.getWorkspaceIconProfile().getIconTextSizePx());
+                    int contentHeight = iconSize
+                            + grid.getWorkspaceIconProfile().getIconDrawablePaddingPx()
+                            + iconTextHeight;
+                    float yFactor = (grid.getDeviceProperties().isTablet()
+                            || grid.getDeviceProperties().isTwoPanels()
+                            || grid.isVerticalBarLayout()) ? 0.5f : 0.6666667f;
+                    cellPaddingY = Math.round(Math.max(0, cellHeight - contentHeight) * yFactor);
+                }
+                topPadding = cellPaddingY;
+            }
+            backgroundHeight = (spanY - 1) * (cellHeight + borderSpace.y) + previewSize;
+            backgroundTop = topPadding + grid.folderIconOffsetYPx;
 
-            boolean hasLabel = labelHeight > 0;
-
-            int iconTopInCell = hasLabel
-                    ? (grid.getWorkspaceIconProfile().getCellYPaddingPx() >= 0
-                            ? grid.getWorkspaceIconProfile().getCellYPaddingPx()
-                            : Math.max(0, (cellHeight - cHeight) / 2))
-                    : Math.max(0, (cellHeight - iconSize) / 2);
-
-            int iconBottomPaddingInCell = Math.max(0, cellHeight - iconTopInCell - iconSize);
-            int iconLeftInCell = Math.max(0, (cellWidth - iconSize) / 2);
-
-            int borderX = grid.getWorkspaceIconProfile().getCellLayoutBorderSpacePx().x;
-            int cardSize = cellWidth + borderX + iconSize;
-
-            if (spanX == 1 && spanY == 1) {
-                backgroundWidth = iconSize;
-                backgroundHeight = iconSize;
-                backgroundLeft = iconLeftInCell;
-                backgroundTop = iconTopInCell;
-            } else if (spanX == 2 && spanY == 1) {
-                backgroundWidth = Math.max(iconSize, availableSpaceX - 2 * iconLeftInCell);
-                backgroundHeight = iconSize;
-                backgroundLeft = iconLeftInCell;
-                backgroundTop = iconTopInCell;
-            } else if (spanX == 1 && spanY == 2) {
-                backgroundWidth = iconSize;
-                backgroundHeight = cardSize;
-                backgroundLeft = iconLeftInCell;
-                backgroundTop = hasLabel
-                        ? iconTopInCell
-                        : Math.max(0, (availableSpaceY - backgroundHeight) / 2);
-            } else if (spanX == 2 && spanY == 2) {
-                backgroundWidth = Math.max(iconSize, availableSpaceX - 2 * iconLeftInCell);
-                backgroundHeight = backgroundWidth;
-                backgroundLeft = iconLeftInCell;
-                backgroundTop = hasLabel
-                        ? iconTopInCell
-                        : Math.max(0, (availableSpaceY - backgroundHeight) / 2);
+            if (spanX == 1) {
+                backgroundWidth = previewSize;
+                backgroundLeft = availableSpaceX > 0
+                        ? (availableSpaceX - backgroundWidth) / 2
+                        : (cellWidth - previewSize) / 2;
             } else {
-                backgroundLeft = iconLeftInCell;
-                backgroundWidth = Math.max(iconSize, availableSpaceX - 2 * iconLeftInCell);
-                backgroundHeight = Math.max(iconSize, availableSpaceY - (hasLabel ? (iconTopInCell + iconBottomPaddingInCell) : 2 * iconTopInCell));
-                backgroundTop = hasLabel
-                        ? iconTopInCell
-                        : Math.max(0, (availableSpaceY - backgroundHeight) / 2);
+                int numColumns = grid.inv != null ? grid.inv.numColumns : 4;
+                float bgPaddingHorizDp = numColumns <= 3 ? 18f : (numColumns == 4 ? 10f : 4.7f);
+                int oosBgPaddingHoriz = Utilities.dpToPx(bgPaddingHorizDp);
+                int iconAlignedPaddingHoriz = Math.max(0, (cellWidth - previewSize) / 2);
+                int bgPaddingHoriz = Math.min(oosBgPaddingHoriz, iconAlignedPaddingHoriz);
+                int totalSpanWidth = availableSpaceX > 0
+                        ? availableSpaceX
+                        : (spanX * cellWidth + (spanX - 1) * borderSpace.x);
+                backgroundLeft = bgPaddingHoriz;
+                backgroundWidth = Math.max(previewSize, totalSpanWidth - 2 * bgPaddingHoriz);
             }
         }
 
@@ -273,13 +274,6 @@ public class PreviewBackground extends DelegatedCellDrawing {
         DeviceProfile grid = activity.getDeviceProfile();
         previewSize = grid.folderIconSizePx;
 
-        boolean isWorkspace = (invalidateDelegate instanceof FolderIcon folderIcon)
-                && folderIcon.usesWorkspacePreviewLayout();
-        mIsWorkspace = isWorkspace;
-
-        int labelHeight = (invalidateDelegate instanceof FolderIcon folderIcon)
-                ? folderIcon.getFolderLabelHeight() : 0;
-
         calculateBackgroundBounds(
             grid,
             availableSpaceX,
@@ -287,8 +281,6 @@ public class PreviewBackground extends DelegatedCellDrawing {
             topPadding,
             spanX,
             spanY,
-            labelHeight,
-            isWorkspace,
             mBackgroundBounds);
         mTargetBackgroundBounds.set(mBackgroundBounds);
 
@@ -446,10 +438,6 @@ public class PreviewBackground extends DelegatedCellDrawing {
         drawShadow(canvas);
     }
 
-    private boolean isMultiSpan() {
-        return mSpanX > 1 || mSpanY > 1;
-    }
-
     private ShapeDelegate getShape() {
         return ThemeManager.INSTANCE.get(mContext).getFolderShape();
     }
@@ -458,30 +446,36 @@ public class PreviewBackground extends DelegatedCellDrawing {
             ShapeDelegate shape,
             RectF bounds,
             float scale) {
-        if (isMultiSpan()) {
-            float widgetRadius = RoundedCornerEnforcement.computeEnforcedRadius(mContext);
-            if (widgetRadius <= 0) {
-                float density = mContext.getResources().getDisplayMetrics().density;
-                widgetRadius = 24f * density;
+        if (!(shape instanceof ShapeDelegate.RoundedSquare roundedSquare)) {
+            return 0f;
+        }
+
+        if ((mSpanX == 2 && mSpanY == 1) || (mSpanX == 1 && mSpanY == 2)) {
+            // 2x1 horizontal and 1x2 vertical capsules: rounded end caps (stadium / pill shape) matching OOS
+            return Math.min(bounds.width(), bounds.height()) / 2f * scale;
+        }
+
+        if (mSpanX > 1 || mSpanY > 1) {
+            // Multi-span enlarged folders (e.g. 2x2, 1x2):
+            // Always keep boxy borders with smooth rounded corners matching OOS,
+            // even when the workspace icon shape is circular.
+            float boxyRadius = previewSize * 0.44f * scale;
+            if (shape instanceof ShapeDelegate.RoundedSquare
+                    && !(shape instanceof ShapeDelegate.Circle)) {
+                boxyRadius = Math.max(boxyRadius,
+                        previewSize / 2f * roundedSquare.getRadiusRatio() * scale);
             }
-            return Math.min(widgetRadius * scale, Math.min(bounds.width(), bounds.height()) / 2f);
+            return Math.min(boxyRadius, Math.min(bounds.width(), bounds.height()) / 2f);
         }
 
         if (shape instanceof ShapeDelegate.Circle) {
             return Math.min(bounds.width(), bounds.height()) / 2f;
         }
 
-        if (shape instanceof ShapeDelegate.RoundedSquare roundedSquare) {
-            float fixedRadius =
-                    bounds.width() / 2f * roundedSquare.getRadiusRatio() * scale;
-            return Math.min(
-                    fixedRadius,
-                    Math.min(bounds.width(), bounds.height()) / 2f);
-        }
-
-        float defaultAdaptiveRadius = previewSize / 2f * 0.44f * scale;
+        float fixedRadius =
+                previewSize / 2f * roundedSquare.getRadiusRatio() * scale;
         return Math.min(
-                defaultAdaptiveRadius,
+                fixedRadius,
                 Math.min(bounds.width(), bounds.height()) / 2f);
     }
 
@@ -490,24 +484,28 @@ public class PreviewBackground extends DelegatedCellDrawing {
             RectF bounds,
             float scale,
             Paint paint) {
-        if (isMultiSpan()) {
-            float radius = getCornerRadius(getShape(), bounds, scale);
+        ShapeDelegate shape = getShape();
+
+        if (shape instanceof ShapeDelegate.RoundedSquare) {
+            float radius = getCornerRadius(shape, bounds, scale);
             canvas.drawRoundRect(bounds, radius, radius, paint);
-            return;
+        } else {
+            shape.drawShapeInBounds(canvas, bounds, paint);
         }
-        getShape().drawShapeInBounds(canvas, bounds, paint);
     }
 
     private void addShapeToPathInBounds(
             Path path,
             RectF bounds,
             float scale) {
-        if (isMultiSpan()) {
-            float radius = getCornerRadius(getShape(), bounds, scale);
+        ShapeDelegate shape = getShape();
+
+        if (shape instanceof ShapeDelegate.RoundedSquare) {
+            float radius = getCornerRadius(shape, bounds, scale);
             path.addRoundRect(bounds, radius, radius, Path.Direction.CW);
-            return;
+        } else {
+            shape.addToPathInBounds(path, bounds);
         }
-        getShape().addToPathInBounds(path, bounds);
     }
 
     float getDrawnCornerRadius() {

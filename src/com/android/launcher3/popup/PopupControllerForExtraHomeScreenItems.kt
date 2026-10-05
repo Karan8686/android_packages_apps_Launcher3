@@ -23,6 +23,7 @@ import com.android.launcher3.Launcher
 import com.android.launcher3.R
 import com.android.launcher3.dragndrop.LauncherDragController
 import com.android.launcher3.folder.FolderIcon
+import com.android.launcher3.model.data.FolderInfo
 import com.android.launcher3.model.data.ItemInfo
 import com.android.launcher3.shortcuts.DeepShortcutView
 import com.android.launcher3.views.ActivityContext
@@ -72,6 +73,14 @@ class PopupControllerForExtraHomeScreenItems<T>(
     ) {
         popup.systemShortcutContainer =
             popup.inflateAndAdd(R.layout.system_shortcut_rows_container, popup)
+        if (
+            itemView is FolderIcon &&
+                itemInfo is FolderInfo &&
+                itemInfo.spanX == 2 &&
+                itemInfo.spanY == 2
+        ) {
+            addBigFolderStyleSelector(popup, itemInfo, itemView)
+        }
         val popupData = popupDataRepository.getPopupDataByItemInfo(itemInfo)?.toList()
         popupData?.forEach { systemShortcut ->
             val view: DeepShortcutView =
@@ -84,6 +93,56 @@ class PopupControllerForExtraHomeScreenItems<T>(
             view.setOnClickListener {
                 systemShortcut.popupAction.invoke(activityContext, itemInfo, itemView)
             }
+        }
+    }
+
+    private fun addBigFolderStyleSelector(
+        popup: PopupContainer<T>,
+        folderInfo: FolderInfo,
+        folderIcon: FolderIcon,
+    ) {
+        val selectorRow: View =
+            popup.inflateAndAdd(R.layout.folder_style_selector_row, popup.systemShortcutContainer)
+        val btn3x3 = selectorRow.findViewById<View>(R.id.folder_style_3x3)
+        val btn2x2 = selectorRow.findViewById<View>(R.id.folder_style_2x2)
+        val btnFeatured = selectorRow.findViewById<View>(R.id.folder_style_featured)
+        val icon3x3 = selectorRow.findViewById<View>(R.id.folder_style_3x3_icon)
+        val icon2x2 = selectorRow.findViewById<View>(R.id.folder_style_2x2_icon)
+        val iconFeatured = selectorRow.findViewById<View>(R.id.folder_style_featured_icon)
+
+        fun updateSelectionUi(activeStyle: Int) {
+            val is3x3 = activeStyle == FolderInfo.FOLDER_STYLE_3X3
+            val is2x2 = activeStyle == FolderInfo.FOLDER_STYLE_2X2
+            val isFeatured = activeStyle == FolderInfo.FOLDER_STYLE_FEATURED
+
+            btn3x3.setBackgroundResource(
+                if (is3x3) R.drawable.bg_folder_style_option_selected else 0
+            )
+            btn2x2.setBackgroundResource(
+                if (is2x2) R.drawable.bg_folder_style_option_selected else 0
+            )
+            btnFeatured.setBackgroundResource(
+                if (isFeatured) R.drawable.bg_folder_style_option_selected else 0
+            )
+
+            icon3x3.alpha = if (is3x3) 1.0f else 0.55f
+            icon2x2.alpha = if (is2x2) 1.0f else 0.55f
+            iconFeatured.alpha = if (isFeatured) 1.0f else 0.55f
+        }
+
+        updateSelectionUi(folderInfo.bigFolderStyle)
+
+        btn3x3.setOnClickListener {
+            folderIcon.setBigFolderStyle(FolderInfo.FOLDER_STYLE_3X3)
+            updateSelectionUi(FolderInfo.FOLDER_STYLE_3X3)
+        }
+        btn2x2.setOnClickListener {
+            folderIcon.setBigFolderStyle(FolderInfo.FOLDER_STYLE_2X2)
+            updateSelectionUi(FolderInfo.FOLDER_STYLE_2X2)
+        }
+        btnFeatured.setOnClickListener {
+            folderIcon.setBigFolderStyle(FolderInfo.FOLDER_STYLE_FEATURED)
+            updateSelectionUi(FolderInfo.FOLDER_STYLE_FEATURED)
         }
     }
 

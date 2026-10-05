@@ -18,6 +18,7 @@ package com.android.launcher3.popup
 
 import android.content.Context
 import android.view.View
+import com.android.launcher3.AppWidgetResizeFrame
 import com.android.launcher3.BubbleTextView
 import com.android.launcher3.Launcher
 import com.android.launcher3.model.data.ItemInfo
@@ -65,6 +66,10 @@ class PopupControllerForAppIcon<T> : PopupController<T> where T : Context, T : A
             if (view.showingMinimalPopup) emptyList() else systemShortcuts)
         launcher.refreshAndBindWidgetsForPackageUser(PackageUserKey.fromItemInfo(item))
         container.requestFocus()
+        val cellLayout = launcher.workspace.getParentCellLayoutForView(icon)
+        if (cellLayout != null) {
+            AppWidgetResizeFrame.showForAppIcon(icon, cellLayout)
+        }
         return container
     }
 

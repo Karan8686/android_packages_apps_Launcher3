@@ -58,6 +58,12 @@ public class FolderInfo extends CollectionInfo {
 
     public static final int FLAG_MANUAL_FOLDER_NAME = 0x00000008;
 
+    public static final int FLAG_FOLDER_STYLE_SHIFT = 4;
+    public static final int FLAG_FOLDER_STYLE_MASK = 0x00000030;
+    public static final int FOLDER_STYLE_2X2 = 0;
+    public static final int FOLDER_STYLE_3X3 = 1;
+    public static final int FOLDER_STYLE_FEATURED = 2;
+
     /**
      * Different states of folder label.
      */
@@ -218,6 +224,26 @@ public class FolderInfo extends CollectionInfo {
                                 : LabelState.SUGGESTED;
     }
 
+    public int getBigFolderStyle() {
+        int style = (options & FLAG_FOLDER_STYLE_MASK) >> FLAG_FOLDER_STYLE_SHIFT;
+        if (style == FOLDER_STYLE_3X3 || style == FOLDER_STYLE_FEATURED) {
+            return style;
+        }
+        return FOLDER_STYLE_2X2;
+    }
+
+    public void setBigFolderStyle(int style, @Nullable ModelWriter writer) {
+        int clamped = (style == FOLDER_STYLE_3X3 || style == FOLDER_STYLE_FEATURED)
+                ? style
+                : FOLDER_STYLE_2X2;
+        int oldOptions = options;
+        options = (options & ~FLAG_FOLDER_STYLE_MASK)
+                | ((clamped << FLAG_FOLDER_STYLE_SHIFT) & FLAG_FOLDER_STYLE_MASK);
+        if (writer != null && oldOptions != options) {
+            writer.updateItemInDatabase(this);
+        }
+    }
+
     @NonNull
     @Override
     public ItemInfo makeShallowCopy() {
@@ -230,6 +256,7 @@ public class FolderInfo extends CollectionInfo {
     public void copyFrom(@NonNull ItemInfo info) {
         super.copyFrom(info);
         if (info instanceof FolderInfo fi) {
+            this.options = fi.options;
             contents.addAll(fi.getContents());
         }
     }

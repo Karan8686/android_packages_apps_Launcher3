@@ -56,6 +56,7 @@ import com.android.launcher3.logging.StatsLogManager.LauncherEvent
 import com.android.launcher3.model.data.FolderInfo
 import com.android.launcher3.model.data.ItemInfo
 import com.android.launcher3.model.data.LauncherAppWidgetInfo
+import com.android.launcher3.model.data.WorkspaceItemInfo
 import com.android.launcher3.popup.PopupContainer.Companion.getOpen
 import com.android.launcher3.util.CellAndSpan
 import com.android.launcher3.util.PendingRequestArgs
@@ -192,49 +193,87 @@ private class FolderResizeTarget(
         }
 
         val isInitialGeometry = spanX == initialSpanX && spanY == initialSpanY
+        val lp = folderIcon.layoutParams as CellLayoutLayoutParams
+        val isCurrentGeometry = spanX == lp.cellHSpan && spanY == lp.cellVSpan
 
-        return isInitialGeometry ||
+        return isInitialGeometry || isCurrentGeometry ||
             workspace.canResizeFolderTo(folderIcon, cellX, cellY, spanX, spanY)
     }
 
     override fun onResizeApplied(spanX: Int, spanY: Int, committed: Boolean) {
-        val cellLayout = workspace.getParentCellLayoutForView(folderIcon) ?: return
-        val lp = folderIcon.layoutParams as? CellLayoutLayoutParams ?: return
-        lp.cellHSpan = spanX
-        lp.cellVSpan = spanY
-        val folderInfo = folderIcon.mInfo
-        if (folderInfo != null) {
+        if (committed) {
             folderInfo.spanX = spanX
             folderInfo.spanY = spanY
-        }
-        cellLayout.shortcutsAndWidgets.setupLp(folderIcon)
-        folderIcon.measure(
-            View.MeasureSpec.makeMeasureSpec(lp.width, View.MeasureSpec.EXACTLY),
-            View.MeasureSpec.makeMeasureSpec(lp.height, View.MeasureSpec.EXACTLY),
-        )
-        folderIcon.layout(
-            folderIcon.left,
-            folderIcon.top,
-            folderIcon.left + lp.width,
-            folderIcon.top + lp.height,
-        )
-        folderIcon.previewItemManager.recomputePreviewDrawingParams()
-        folderIcon.layoutFolderName()
-        folderIcon.invalidate()
-
-        if (committed) {
-            if (folderInfo != null) {
-                folderInfo.minSpanX = spanX
-                folderInfo.minSpanY = spanY
-                workspace.mLauncher.modelWriter.updateItemInDatabase(folderInfo)
-            }
-            workspace.resizeFolder(
-                folderIcon,
-                CellAndSpan(lp.cellX, lp.cellY, spanX, spanY),
-                intArrayOf(0, 0),
-            )
+            folderInfo.minSpanX = spanX
+            folderInfo.minSpanY = spanY
+            workspace.mLauncher.modelWriter.updateItemInDatabase(folderInfo)
         }
     }
+
+    override fun getResizeAnnouncement(context: Context, spanX: Int, spanY: Int): CharSequence =
+        context.getString(R.string.folder_resized, spanX, spanY)
+}
+
+private class AppIconResizeTarget(
+    val icon: BubbleTextView,
+    private val workspace: Workspace<*>,
+    allowedSizes: List<Point>,
+) : ResizeTarget {
+    private val itemInfoInternal = icon.tag as WorkspaceItemInfo
+
+    private val initialCellX: Int
+    private val initialCellY: Int
+    private val initialSpanX: Int
+    private val initialSpanY: Int
+    private val supportedSizes: List<Point>
+
+    init {
+        val lp = icon.layoutParams as CellLayoutLayoutParams
+        initialCellX = lp.cellX
+        initialCellY = lp.cellY
+        initialSpanX = lp.cellHSpan
+        initialSpanY = lp.cellVSpan
+        supportedSizes = (allowedSizes + Point(initialSpanX, initialSpanY)).distinct()
+    }
+
+    override val view: View = icon
+    override val itemInfo: ItemInfo = itemInfoInternal
+    override val minSpanX: Int = supportedSizes.minOfOrNull { it.x } ?: 1
+    override val minSpanY: Int = supportedSizes.minOfOrNull { it.y } ?: 1
+    override val maxSpanX: Int = supportedSizes.maxOfOrNull { it.x } ?: 1
+    override val maxSpanY: Int = supportedSizes.maxOfOrNull { it.y } ?: 1
+    override val visualScale: Float = 1f
+    override val canResizeFromLeft: Boolean = false
+    override val canResizeFromTop: Boolean = false
+
+    override fun canResizeTo(cellX: Int, cellY: Int, spanX: Int, spanY: Int): Boolean {
+        if (cellX != initialCellX || cellY != initialCellY) {
+            return false
+        }
+
+        val isInitialGeometry = spanX == initialSpanX && spanY == initialSpanY
+        val lp = icon.layoutParams as CellLayoutLayoutParams
+        val isCurrentGeometry = spanX == lp.cellHSpan && spanY == lp.cellVSpan
+
+        return isInitialGeometry || isCurrentGeometry ||
+            workspace.canResizeAppIconTo(icon, cellX, cellY, spanX, spanY)
+    }
+
+    override fun onResizeApplied(spanX: Int, spanY: Int, committed: Boolean) {
+        icon.loadSuperIconDrawableIfNecessary()
+        icon.invalidate()
+        if (committed) {
+            itemInfoInternal.spanX = spanX
+            itemInfoInternal.spanY = spanY
+            itemInfoInternal.minSpanX = spanX
+            itemInfoInternal.minSpanY = spanY
+            workspace.mLauncher.modelWriter.updateItemInDatabase(itemInfoInternal)
+            icon.requestLayout()
+        }
+    }
+
+    override fun getResizeAnnouncement(context: Context, spanX: Int, spanY: Int): CharSequence =
+        context.getString(R.string.folder_resized, spanX, spanY)
 }
 
 /**
@@ -315,6 +354,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 
     private var xDown = 0
     private var yDown = 0
+    private var ignoreCurrentTouchSequence = false
 
     init {
         launcher.dragController.addDragListener(this)
@@ -329,15 +369,13 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
         folderResizeHandleLength =
             resources.getDimension(R.dimen.folder_resize_handle_length)
 
-        val isBrightWallpaper = Themes.getAttrBoolean(context, R.attr.isWorkspaceDarkText)
-
         folderResizeOutlinePaint.apply {
             style = Paint.Style.STROKE
             strokeWidth =
                 resources.getDimension(R.dimen.folder_resize_outline_stroke_width)
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
-            color = if (isBrightWallpaper) FOLDER_RESIZE_OUTLINE_BRIGHT_COLOR else FOLDER_RESIZE_OUTLINE_DARK_COLOR
+            color = context.getColor(R.color.materialColorPrimary)
         }
 
         folderResizeHandlePaint.apply {
@@ -347,7 +385,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                     R.dimen.folder_resize_handle_stroke_width)
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
-            color = if (isBrightWallpaper) FOLDER_RESIZE_HANDLE_BRIGHT_COLOR else FOLDER_RESIZE_HANDLE_DARK_COLOR
+            color = context.getColor(R.color.materialColorPrimary)
         }
 
         firstFrameAnimatorHelper = FirstFrameAnimatorHelper(this)
@@ -383,9 +421,21 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
             } else {
                 null
             }
+        val appIconTarget =
+            if (::resizeTarget.isInitialized) {
+                resizeTarget as? AppIconResizeTarget
+            } else {
+                null
+            }
 
         if (folderTarget != null) {
             updateFolderResizeGeometry(folderTarget.folderIcon)
+            systemGestureExclusionRectsHolder.forEach { it.setEmpty() }
+            systemGestureExclusionRectsHolder[0].set(
+                folderResizeHandleTouchRect
+            )
+        } else if (appIconTarget != null) {
+            updateAppIconResizeGeometry(appIconTarget.icon)
             systemGestureExclusionRectsHolder.forEach { it.setEmpty() }
             systemGestureExclusionRectsHolder[0].set(
                 folderResizeHandleTouchRect
@@ -409,10 +459,15 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
         super.dispatchDraw(canvas)
 
         if (!::resizeTarget.isInitialized) return
-        val folderTarget =
-            resizeTarget as? FolderResizeTarget ?: return
+        val folderTarget = resizeTarget as? FolderResizeTarget
+        val appIconTarget = resizeTarget as? AppIconResizeTarget
+        if (folderTarget == null && appIconTarget == null) return
 
-        updateFolderResizeGeometry(folderTarget.folderIcon)
+        if (folderTarget != null) {
+            updateFolderResizeGeometry(folderTarget.folderIcon)
+        } else if (appIconTarget != null) {
+            updateAppIconResizeGeometry(appIconTarget.icon)
+        }
         val offset = backgroundPadding.toFloat()
 
         canvas.save()
@@ -429,49 +484,33 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 
         canvas.restore()
 
-        if (folderTarget.folderIcon.isPreviewBackgroundAnimating) {
+        if (folderTarget != null && folderTarget.folderIcon.isPreviewBackgroundAnimating) {
             postInvalidateOnAnimation()
         }
     }
 
     private fun updateFolderResizeGeometry(folderIcon: FolderIcon) {
-        val isBrightWallpaper = Themes.getAttrBoolean(context, R.attr.isWorkspaceDarkText)
-        folderResizeOutlinePaint.color =
-            if (isBrightWallpaper) FOLDER_RESIZE_OUTLINE_BRIGHT_COLOR else FOLDER_RESIZE_OUTLINE_DARK_COLOR
-        folderResizeHandlePaint.color =
-            if (isBrightWallpaper) FOLDER_RESIZE_HANDLE_BRIGHT_COLOR else FOLDER_RESIZE_HANDLE_DARK_COLOR
-
-        val bgBounds = TempRect
-        folderIcon.getFolderBackgroundBounds(bgBounds)
-
-        val dp = launcher.deviceProfile
-        val density = dp.workspaceIconProfile.iconSizePx / 60f
-        val gap = Math.round(6f * density)
-        val bottomPadding = Math.round(4f * density)
-
-        val hasLabel = folderIcon.shouldShowFolderName() && folderIcon.folderLabelHeight > 0
-        val bottom = if (hasLabel) {
-            val labelBottom = bgBounds.bottom + gap + folderIcon.folderLabelHeight + bottomPadding
-            labelBottom.toFloat().coerceAtMost(folderIcon.height.toFloat())
-        } else {
-            bgBounds.bottom.toFloat()
-        }
-
-        folderResizeOutlineBounds.set(
-            bgBounds.left.toFloat(),
-            bgBounds.top.toFloat(),
-            bgBounds.right.toFloat(),
-            bottom,
-        )
-
-        folderResizeOutlinePath.reset()
-        val cornerRadius = folderIcon.previewBackgroundCornerRadius
-        folderResizeOutlinePath.addRoundRect(
+        folderIcon.getPreviewBackgroundPath(folderResizeOutlinePath)
+        folderResizeOutlinePath.computeBounds(
             folderResizeOutlineBounds,
-            cornerRadius,
-            cornerRadius,
-            Path.Direction.CW,
+            true,
         )
+
+        val cornerRadius =
+            folderIcon.previewBackgroundCornerRadius
+
+        updateFolderResizeHandlePath(cornerRadius)
+    }
+
+    private fun updateAppIconResizeGeometry(icon: BubbleTextView) {
+        icon.getIconBackgroundPath(folderResizeOutlinePath)
+        folderResizeOutlinePath.computeBounds(
+            folderResizeOutlineBounds,
+            true,
+        )
+
+        val cornerRadius =
+            icon.getIconBackgroundCornerRadius()
 
         updateFolderResizeHandlePath(cornerRadius)
     }
@@ -659,26 +698,57 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
             View.INVISIBLE
         dragHandles.all.forEach { it.visibility = View.INVISIBLE }
 
-        alpha = VISIBLE_ALPHA
+        alpha =
+            if (ignoreCurrentTouchSequence) {
+                DIMMED_ALPHA
+            } else {
+                VISIBLE_ALPHA
+            }
+    }
+
+    private fun setupForAppIcon(
+        icon: BubbleTextView,
+        cellLayout: CellLayout,
+        dragLayer: DragLayer,
+    ) {
+        val workspace = launcher.workspace
+        val target =
+            AppIconResizeTarget(
+                icon = icon,
+                workspace = workspace,
+                allowedSizes = workspace.getAllowedAppIconSizes(icon),
+            )
+
+        setupForTarget(target, cellLayout, dragLayer)
+        findViewById<View>(R.id.widget_resize_frame).visibility =
+            View.INVISIBLE
+        dragHandles.all.forEach { it.visibility = View.INVISIBLE }
+
+        alpha =
+            if (ignoreCurrentTouchSequence) {
+                DIMMED_ALPHA
+            } else {
+                VISIBLE_ALPHA
+            }
     }
 
     private fun updateActiveResizeBorders(x: Int, y: Int) {
         val folderTarget = resizeTarget as? FolderResizeTarget
-        if (folderTarget != null) {
-            updateFolderResizeGeometry(folderTarget.folderIcon)
+        val appIconTarget = resizeTarget as? AppIconResizeTarget
+        if (folderTarget != null || appIconTarget != null) {
+            if (folderTarget != null) {
+                updateFolderResizeGeometry(folderTarget.folderIcon)
+            } else {
+                updateAppIconResizeGeometry(appIconTarget!!.icon)
+            }
 
-            val handleActive = folderResizeHandleTouchRect.contains(x, y)
-            val rightBorderActive = x > folderResizeOutlineBounds.right + backgroundPadding - touchTargetWidth
-                    && y >= folderResizeOutlineBounds.top + backgroundPadding
-                    && y <= folderResizeOutlineBounds.bottom + backgroundPadding
-            val bottomBorderActive = y > folderResizeOutlineBounds.bottom + backgroundPadding - touchTargetWidth
-                    && x >= folderResizeOutlineBounds.left + backgroundPadding
-                    && x <= folderResizeOutlineBounds.right + backgroundPadding
+            val handleActive =
+                folderResizeHandleTouchRect.contains(x, y)
 
             isLeftBorderActive = false
-            isRightBorderActive = handleActive || rightBorderActive
+            isRightBorderActive = handleActive
             isTopBorderActive = false
-            isBottomBorderActive = handleActive || bottomBorderActive
+            isBottomBorderActive = handleActive
             return
         }
 
@@ -828,70 +898,64 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
         val yThreshold =
             (cellLayout.cellHeight + dp.workspaceIconProfile.cellLayoutBorderSpacePx.y).toFloat()
 
-        val hSpanInc = getSpanIncrement((deltaX + deltaXAddOn) / xThreshold - runningHInc)
-        val vSpanInc = getSpanIncrement((deltaY + deltaYAddOn) / yThreshold - runningVInc)
+        // Commit the last accepted geometry, even if the last pointer position was invalid.
+        val hSpanInc = if (onDismiss) 0 else
+            getSpanIncrement((deltaX + deltaXAddOn) / xThreshold - runningHInc)
+        val vSpanInc = if (onDismiss) 0 else
+            getSpanIncrement((deltaY + deltaYAddOn) / yThreshold - runningVInc)
 
         if (!onDismiss && (hSpanInc == 0 && vSpanInc == 0)) return
 
         directionVector[DIRECTION_HORIZONTAL_INDEX] = DIRECTION_NONE
         directionVector[DIRECTION_VERTICAL_INDEX] = DIRECTION_NONE
 
-        val oldSpanX = wlp.cellHSpan
-        val oldSpanY = wlp.cellVSpan
+        var spanX = wlp.cellHSpan
+        var spanY = wlp.cellVSpan
+        var cellX = if (wlp.useTmpCoords) wlp.tmpCellX else wlp.cellX
+        var cellY = if (wlp.useTmpCoords) wlp.tmpCellY else wlp.cellY
 
-        val startCellX = if (wlp.useTmpCoords) wlp.tmpCellX else wlp.cellX
-        val startCellY = if (wlp.useTmpCoords) wlp.tmpCellY else wlp.cellY
-
-        tempRange1.set(startCellX, oldSpanX + startCellX)
-        tempRange1.applyDeltaAndBound(
-            moveStart = isLeftBorderActive,
-            moveEnd = isRightBorderActive,
-            delta = hSpanInc,
-            minSize = resizeTarget.minSpanX,
-            maxSize = resizeTarget.maxSpanX,
-            maxEnd = cellLayout.countX,
-            outputRange = tempRange2,
-        )
-        val boundedCellX = tempRange2.start
-        val boundedSpanX = tempRange2.size()
-
-        tempRange1.set(startCellY, oldSpanY + startCellY)
-        tempRange1.applyDeltaAndBound(
-            moveStart = isTopBorderActive,
-            moveEnd = isBottomBorderActive,
-            delta = vSpanInc,
-            minSize = resizeTarget.minSpanY,
-            maxSize = resizeTarget.maxSpanY,
-            maxEnd = cellLayout.countY,
-            outputRange = tempRange2,
-        )
-        val boundedCellY = tempRange2.start
-        val boundedSpanY = tempRange2.size()
-
-        val spanX = boundedSpanX
-        val spanY = boundedSpanY
-        val cellX = boundedCellX
-        val cellY = boundedCellY
-
-        val actualHDelta = spanX - oldSpanX
-        val actualVDelta = spanY - oldSpanY
-
-        if (!onDismiss && actualHDelta == 0 && actualVDelta == 0) return
-
-        if (resizeTarget is FolderResizeTarget) {
-            directionVector[DIRECTION_HORIZONTAL_INDEX] = DIRECTION_RIGHT
-            directionVector[DIRECTION_VERTICAL_INDEX] = DIRECTION_BOTTOM
-        } else {
-            if (actualHDelta != 0) {
-                directionVector[DIRECTION_HORIZONTAL_INDEX] =
-                    if (actualHDelta < 0) DIRECTION_LEFT else DIRECTION_RIGHT
-            }
-            if (actualVDelta != 0) {
-                directionVector[DIRECTION_VERTICAL_INDEX] =
-                    if (actualVDelta < 0) DIRECTION_TOP else DIRECTION_BOTTOM
-            }
+        // For each border, we bound the resizing based on the minimum width, and the maximum
+        // expandability.
+        tempRange1.set(cellX, spanX + cellX)
+        val hSpanDelta =
+            tempRange1.applyDeltaAndBound(
+                moveStart = isLeftBorderActive,
+                moveEnd = isRightBorderActive,
+                delta = hSpanInc,
+                minSize = resizeTarget.minSpanX,
+                maxSize = resizeTarget.maxSpanX,
+                maxEnd = cellLayout.countX,
+                outputRange = tempRange2,
+            )
+        cellX = tempRange2.start
+        spanX = tempRange2.size()
+        if (hSpanDelta != 0) {
+            directionVector[DIRECTION_HORIZONTAL_INDEX] =
+                if (isLeftBorderActive) DIRECTION_LEFT else DIRECTION_RIGHT
         }
 
+        tempRange1.set(cellY, spanY + cellY)
+        val vSpanDelta =
+            tempRange1.applyDeltaAndBound(
+                moveStart = isTopBorderActive,
+                moveEnd = isBottomBorderActive,
+                delta = vSpanInc,
+                minSize = resizeTarget.minSpanY,
+                maxSize = resizeTarget.maxSpanY,
+                maxEnd = cellLayout.countY,
+                outputRange = tempRange2,
+            )
+        cellY = tempRange2.start
+        spanY = tempRange2.size()
+        if (vSpanDelta != 0) {
+            directionVector[DIRECTION_VERTICAL_INDEX] =
+                if (isTopBorderActive) DIRECTION_TOP else DIRECTION_BOTTOM
+        }
+
+        if (!onDismiss && vSpanDelta == 0 && hSpanDelta == 0) return
+
+        // We always want the final commit to match the feedback, so we make sure to use the
+        // last used direction vector when committing the resize / reorder.
         if (onDismiss) {
             directionVector[DIRECTION_HORIZONTAL_INDEX] =
                 lastDirectionVector[DIRECTION_HORIZONTAL_INDEX]
@@ -927,8 +991,8 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
             wlp.tmpCellY = cellY
             wlp.cellHSpan = spanX
             wlp.cellVSpan = spanY
-            runningVInc += actualVDelta
-            runningHInc += actualHDelta
+            runningVInc += vSpanDelta
+            runningHInc += hSpanDelta
 
             resizeTarget.onResizeApplied(spanX, spanY, committed = onDismiss)
         }
@@ -1132,20 +1196,37 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     }
 
     override fun onControllerInterceptTouchEvent(ev: MotionEvent): Boolean {
-        if (ev.action != MotionEvent.ACTION_DOWN) return false
+        if (ignoreCurrentTouchSequence) {
+            if (
+                ev.action == MotionEvent.ACTION_UP ||
+                    ev.action == MotionEvent.ACTION_CANCEL
+            ) {
+                animate()
+                    .alpha(VISIBLE_ALPHA)
+                    .setDuration(SNAP_DURATION_MS.toLong())
+                    .start()
+                ignoreCurrentTouchSequence = false
+            }
 
-        if (handleTouchDown(ev)) {
-            return true
+            if (ev.action != MotionEvent.ACTION_DOWN) return false
+            ignoreCurrentTouchSequence = false
         }
 
+        if (ev.action == MotionEvent.ACTION_DOWN && handleTouchDown(ev)) {
+            return true
+        }
+        // Keep the resize frame open but let a click on the reconfigure button fall through to the
+        // button's OnClickListener.
         if (isTouchOnReconfigureButton(ev)) {
             return false
         }
 
-        if (Flags.homeScreenEditImprovements() || resizeTarget is FolderResizeTarget) {
+        if (Flags.homeScreenEditImprovements() || resizeTarget is FolderResizeTarget || resizeTarget is AppIconResizeTarget) {
             if (shouldIgnoreTouch()) {
                 return false
             }
+            // We want to close any open popup if we're not dragging and the touch event is outside
+            // this frame.
             closePopupIfOpen()
         }
         close(/* animate= */ false)
@@ -1219,6 +1300,21 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
             cellLayout.isDragOverlapping = shouldShowCellLayoutBorder
             pairedCellLayout.isDragOverlapping = shouldShowCellLayoutBorder
         }
+    }
+
+    private fun revealFolderResizeFrameWhenTouchEnds() {
+        if (!ignoreCurrentTouchSequence) return
+
+        if (launcher.isTouchInProgress) {
+            postOnAnimation(::revealFolderResizeFrameWhenTouchEnds)
+            return
+        }
+
+        ignoreCurrentTouchSequence = false
+        animate()
+            .alpha(VISIBLE_ALPHA)
+            .setDuration(SNAP_DURATION_MS.toLong())
+            .start()
     }
 
     override fun isOfType(type: Int): Boolean = (type and TYPE_WIDGET_RESIZE_FRAME) != 0
@@ -1344,11 +1440,6 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     }
 
     companion object {
-        private const val FOLDER_RESIZE_OUTLINE_BRIGHT_COLOR = 0x33000000.toInt()
-        private const val FOLDER_RESIZE_OUTLINE_DARK_COLOR = 0x99FFFFFF.toInt()
-        private const val FOLDER_RESIZE_HANDLE_BRIGHT_COLOR = 0xFF808080.toInt()
-        private const val FOLDER_RESIZE_HANDLE_DARK_COLOR = 0xFFFFFFFF.toInt()
-
         private const val SNAP_DURATION_MS = 150
 
         private const val DIMMED_ALPHA = 0f
@@ -1425,6 +1516,8 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
         @JvmStatic
         fun showForFolder(folderIcon: FolderIcon?, cellLayout: CellLayout) {
             if (folderIcon == null || folderIcon.parent == null) return
+            val folderInfo = folderIcon.tag as? FolderInfo ?: return
+            if (folderInfo.container != LauncherSettings.Favorites.CONTAINER_DESKTOP) return
 
             val activityContext = cellLayout.mActivity
             val dragLayer = activityContext.dragLayer as DragLayer
@@ -1439,14 +1532,61 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                 ) as AppWidgetResizeFrame
 
             frame.apply {
+                ignoreCurrentTouchSequence = launcher.isTouchInProgress
                 setupForFolder(folderIcon, cellLayout, dragLayer)
                 tag = folderIcon.tag
+                accessibilityDelegate = activityContext.accessibilityDelegate
+                contentDescription = activityContext.asContext().getString(
+                    R.string.folder_frame_name, folderInfo.title)
                 (layoutParams as BaseDragLayer.LayoutParams).customPosition = true
             }
 
             dragLayer.addView(frame)
             frame.mIsOpen = true
-            frame.post { frame.snapToTarget(false) }
+
+            frame.post {
+                frame.snapToTarget(false)
+                frame.revealFolderResizeFrameWhenTouchEnds()
+            }
+        }
+
+        @JvmStatic
+        fun showForAppIcon(icon: BubbleTextView?, cellLayout: CellLayout) {
+            if (icon == null || icon.parent == null) return
+            val itemInfo = icon.tag as? WorkspaceItemInfo ?: return
+            if (itemInfo.container != LauncherSettings.Favorites.CONTAINER_DESKTOP) return
+
+            icon.loadSuperIconDrawableIfNecessary()
+
+            val activityContext = cellLayout.mActivity
+            val dragLayer = activityContext.dragLayer as DragLayer
+
+            closeAllOpenViewsExcept(activityContext, TYPE_ACTION_POPUP)
+
+            val frame =
+                activityContext.layoutInflater.inflate(
+                    R.layout.app_widget_resize_frame,
+                    dragLayer,
+                    false,
+                ) as AppWidgetResizeFrame
+
+            frame.apply {
+                ignoreCurrentTouchSequence = launcher.isTouchInProgress
+                setupForAppIcon(icon, cellLayout, dragLayer)
+                tag = icon.tag
+                accessibilityDelegate = activityContext.accessibilityDelegate
+                contentDescription = activityContext.asContext().getString(
+                    R.string.folder_frame_name, itemInfo.title)
+                (layoutParams as BaseDragLayer.LayoutParams).customPosition = true
+            }
+
+            dragLayer.addView(frame)
+            frame.mIsOpen = true
+
+            frame.post {
+                frame.snapToTarget(false)
+                frame.revealFolderResizeFrameWhenTouchEnds()
+            }
         }
 
         private fun getSpanIncrement(deltaFrac: Float): Int {

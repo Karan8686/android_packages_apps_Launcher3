@@ -466,7 +466,19 @@ object WorkspaceProfileNonResponsiveFactory {
             cellHeightPx = cellHeightPx,
             cellLayoutBorderSpacePx = cellLayoutBorderSpacePx,
             desiredWorkspaceHorizontalMarginPx = desiredWorkspaceHorizontalMarginPx,
-            cellYPaddingPx = max(0, (cellHeightPx - cellContentHeight)) / 2,
+            cellYPaddingPx =
+                Math.round(
+                    max(0, cellHeightPx - cellContentHeight) *
+                        if (
+                            isVerticalLayout ||
+                                deviceProperties.isTablet ||
+                                deviceProperties.isTwoPanels
+                        ) {
+                            0.5f
+                        } else {
+                            0.6666667f
+                        }
+                ),
             maxIconTextLineCount = 1,
             iconCenterVertically = isVerticalLayout,
             gridVisualizationPaddingX =

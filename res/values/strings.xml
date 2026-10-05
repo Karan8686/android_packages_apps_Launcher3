@@ -588,4 +588,8 @@
     <string name="folder_preview_padding">Outer padding</string>
     <string name="folder_preview_min_gap">Minimum icon spacing</string>
     <string name="folder_settings_dp">%1$d dp</string>
+
+    <!-- Accessibility announcements for workspace folder and icon resizing. -->
+    <string name="folder_resized">Folder resized to width %1$d height %2$d</string>
+    <string name="folder_frame_name">Resize folder %1$s</string>
 </resources>

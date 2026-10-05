@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Outer rounded folder frame -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.5"
+        android:pathData="M6,2.25L18,2.25A3.75,3.75 0,0 1,21.75 6L21.75,18A3.75,3.75 0,0 1,18 21.75L6,21.75A3.75,3.75 0,0 1,2.25 18L2.25,6A3.75,3.75 0,0 1,6 2.25z" />
+    <!-- Top-left medium square -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M6.4,5.2h3.8a1.2,1.2 0,0 1,1.2 1.2v3.8a1.2,1.2 0,0 1,-1.2 1.2h-3.8a1.2,1.2 0,0 1,-1.2 -1.2v-3.8a1.2,1.2 0,0 1,1.2 -1.2z" />
+    <!-- Top-right medium square -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M13.8,5.2h3.8a1.2,1.2 0,0 1,1.2 1.2v3.8a1.2,1.2 0,0 1,-1.2 1.2h-3.8a1.2,1.2 0,0 1,-1.2 -1.2v-3.8a1.2,1.2 0,0 1,1.2 -1.2z" />
+    <!-- Bottom-left medium square -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M6.4,12.6h3.8a1.2,1.2 0,0 1,1.2 1.2v3.8a1.2,1.2 0,0 1,-1.2 1.2h-3.8a1.2,1.2 0,0 1,-1.2 -1.2v-3.8a1.2,1.2 0,0 1,1.2 -1.2z" />
+    <!-- Bottom-right 2x2 mini-dots overview -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M13.4,12.8h1.6a0.6,0.6 0,0 1,0.6 0.6v1.6a0.6,0.6 0,0 1,-0.6 0.6h-1.6a0.6,0.6 0,0 1,-0.6 -0.6v-1.6a0.6,0.6 0,0 1,0.6 -0.6z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M16.6,12.8h1.6a0.6,0.6 0,0 1,0.6 0.6v1.6a0.6,0.6 0,0 1,-0.6 0.6h-1.6a0.6,0.6 0,0 1,-0.6 -0.6v-1.6a0.6,0.6 0,0 1,0.6 -0.6z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M13.4,16h1.6a0.6,0.6 0,0 1,0.6 0.6v1.6a0.6,0.6 0,0 1,-0.6 0.6h-1.6a0.6,0.6 0,0 1,-0.6 -0.6v-1.6a0.6,0.6 0,0 1,0.6 -0.6z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M16.6,16h1.6a0.6,0.6 0,0 1,0.6 0.6v1.6a0.6,0.6 0,0 1,-0.6 0.6h-1.6a0.6,0.6 0,0 1,-0.6 -0.6v-1.6a0.6,0.6 0,0 1,0.6 -0.6z" />
+</vector>

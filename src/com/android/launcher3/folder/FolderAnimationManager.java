@@ -37,6 +37,7 @@ import android.util.Property;
 import android.view.View;
 import android.view.animation.AnimationUtils;
 import android.view.animation.Interpolator;
+import android.view.animation.PathInterpolator;
 
 import androidx.annotation.NonNull;
 
@@ -114,10 +115,15 @@ public class FolderAnimationManager implements FolderAnimationCreator {
         mDuration = res.getInteger(R.integer.config_materialFolderExpandDuration);
         mDelay = res.getInteger(R.integer.config_folderDelay);
 
-        mFolderOpenInterpolator = AnimationUtils.loadInterpolator(mContext,
-                R.interpolator.standard_interpolator);
-        mFolderCloseInterpolator = AnimationUtils.loadInterpolator(mContext,
-                R.interpolator.standard_interpolator);
+        if (mFolderIcon != null && mFolderIcon.isMultiSpanFolder()) {
+            mFolderOpenInterpolator = new PathInterpolator(0.2f, 0.0f, 0.0f, 1.0f);
+            mFolderCloseInterpolator = new PathInterpolator(0.2f, 0.0f, 0.0f, 1.0f);
+        } else {
+            mFolderOpenInterpolator = AnimationUtils.loadInterpolator(mContext,
+                    R.interpolator.standard_interpolator);
+            mFolderCloseInterpolator = AnimationUtils.loadInterpolator(mContext,
+                    R.interpolator.standard_interpolator);
+        }
         mLargeFolderPreviewItemOpenInterpolator = AnimationUtils.loadInterpolator(mContext,
                 R.interpolator.large_folder_preview_item_open_interpolator);
         mLargeFolderPreviewItemCloseInterpolator = AnimationUtils.loadInterpolator(mContext,
@@ -161,7 +167,7 @@ public class FolderAnimationManager implements FolderAnimationCreator {
         final float previewSize;
         final FolderPreviewLayout.Snapshot workspacePreviewSnapshot;
 
-        if (mFolderIcon.usesWorkspacePreviewLayout()) {
+        if (mFolderIcon.isMultiSpanFolder()) {
             workspacePreviewSnapshot = mFolderIcon.getPreviewItemManager()
                     .calculateWorkspacePreviewSnapshotForPage(mContent.getCurrentPage());
             if (workspacePreviewSnapshot.getItems().isEmpty()) {
