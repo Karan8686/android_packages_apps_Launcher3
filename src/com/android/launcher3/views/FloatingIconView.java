@@ -666,7 +666,7 @@ public class FloatingIconView extends FrameLayout implements
         final FastBitmapDrawable btvIcon;
         final Supplier<Drawable> btvDrawableSupplier;
         if (v instanceof BubbleTextView btv) {
-            if (btv.isMultiSpanSuperIcon()) {
+            if (btv.isMultiSpan()) {
                 btvIcon = btv.getIcon();
                 btvDrawableSupplier = null;
             } else if (info instanceof ItemInfoWithIcon iiwi && iiwi.shouldShowPendingIcon()) {
