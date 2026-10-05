@@ -1080,8 +1080,8 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         }
         mSuperIconPressScale = 1.0f;
         for (int i = 0; i < mSlotPressScales.length; i++) {
-            if (mSlotAnimators[i] != null) {
-                mSlotAnimators[i].cancel();
+            if (mSlotPressAnimators[i] != null) {
+                mSlotPressAnimators[i].cancel();
             }
             mSlotPressScales[i] = 1.0f;
         }
