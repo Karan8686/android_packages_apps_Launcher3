@@ -55,6 +55,8 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Point;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.AdaptiveIconDrawable;
@@ -1063,7 +1065,36 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
             drawMultiSpanLabel(canvas);
             return;
         }
+        if (mIcon != null && mIconSize > 0) {
+            Rect b = mIcon.getBounds();
+            if (b.left != 0 || b.top != 0 || b.width() != mIconSize || b.height() != mIconSize) {
+                mIcon.setBounds(0, 0, mIconSize, mIconSize);
+            }
+        }
         super.onDraw(canvas);
+    }
+
+    public void onResizeChanged() {
+        if (mSuperIconPressAnimator != null) {
+            mSuperIconPressAnimator.cancel();
+        }
+        mSuperIconPressScale = 1.0f;
+        for (int i = 0; i < mSlotPressScales.length; i++) {
+            if (mSlotAnimators[i] != null) {
+                mSlotAnimators[i].cancel();
+            }
+            mSlotPressScales[i] = 1.0f;
+        }
+        if (mIcon != null && mIconSize > 0) {
+            mIcon.setBounds(0, 0, mIconSize, mIconSize);
+        }
+        applyCompoundDrawables(getIconOrTransparentColor());
+        if (isMultiSpan()) {
+            loadSuperIconDrawableIfNecessary();
+            loadSuperIconShortcutsIfNecessary();
+        }
+        requestLayout();
+        invalidate();
     }
 
     @Nullable
@@ -1315,38 +1346,50 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         int spanY = getSpanY();
 
         int capsuleBgColor = 0;
-        if (getTag() instanceof ItemInfoWithIcon iiwi) {
+        if (mSuperIconAdaptiveDrawable != null
+                && mSuperIconAdaptiveDrawable.getBackground() instanceof ColorDrawable cd) {
+            capsuleBgColor = cd.getColor();
+        }
+        if ((capsuleBgColor == 0 || capsuleBgColor == Color.TRANSPARENT)
+                && getTag() instanceof ItemInfoWithIcon iiwi) {
             capsuleBgColor = iiwi.bitmap.color;
         }
         if (capsuleBgColor == 0 || capsuleBgColor == Color.TRANSPARENT) {
             capsuleBgColor = 0xFF2B2B2B;
         }
-        boolean isDarkBg = ColorUtils.calculateLuminance(capsuleBgColor) < 0.5;
-        int buttonBgColor = isDarkBg
-                ? ColorUtils.setAlphaComponent(Color.WHITE, 40)
-                : ColorUtils.setAlphaComponent(Color.BLACK, 28);
+        double lum = ColorUtils.calculateLuminance(capsuleBgColor);
+        boolean isDarkBg = lum < 0.5;
+        boolean isLightBg = lum > 0.68;
 
-        Paint buttonPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        buttonPaint.setColor(buttonBgColor);
-        buttonPaint.setStyle(Paint.Style.FILL);
+        int buttonFillColor = isLightBg
+                ? 0xFFE4E8F0
+                : ColorUtils.blendARGB(Color.WHITE, capsuleBgColor, 0.16f);
+        int strokeColor = isLightBg ? 0x1F000000 : 0x38FFFFFF;
+        int appSlotFillColor = isLightBg
+                ? 0xFFEDEFF5
+                : ColorUtils.setAlphaComponent(Color.WHITE, 36);
 
         Paint bitmapPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
 
         if (spanX == 2 && spanY == 1) {
-            draw2x1QuickFunctions(canvas, bgBounds, buttonPaint, bitmapPaint);
+            draw2x1QuickFunctions(canvas, bgBounds, appSlotFillColor, buttonFillColor, strokeColor, bitmapPaint);
         } else if (spanX == 1 && spanY == 2) {
-            draw1x2QuickFunctions(canvas, bgBounds, buttonPaint, bitmapPaint);
+            draw1x2QuickFunctions(canvas, bgBounds, appSlotFillColor, buttonFillColor, strokeColor, bitmapPaint);
         } else if (spanX == 2 && spanY == 2) {
-            draw2x2QuickFunctions(canvas, bgBounds, isDarkBg, buttonPaint, bitmapPaint);
+            draw2x2QuickFunctions(canvas, bgBounds, isDarkBg, appSlotFillColor, buttonFillColor, strokeColor, bitmapPaint);
         }
     }
 
-    private void draw2x1QuickFunctions(Canvas canvas, Rect bgBounds, Paint buttonPaint, Paint bitmapPaint) {
+    private void draw2x1QuickFunctions(Canvas canvas, Rect bgBounds, int appSlotFillColor,
+            int buttonFillColor, int strokeColor, Paint bitmapPaint) {
         int shortcutCount = mSuperIconShortcuts != null ? Math.min(2, mSuperIconShortcuts.size()) : 0;
         int totalSlots = Math.min(3, 1 + shortcutCount);
         float slotWidth = bgBounds.width() / (float) totalSlots;
         float slotDiameter = Math.min(bgBounds.height() * 0.72f, slotWidth * 0.85f);
-        float slotRadius = slotDiameter * 0.36f;
+
+        Paint appSlotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        appSlotPaint.setStyle(Paint.Style.FILL);
+        appSlotPaint.setColor(appSlotFillColor);
 
         for (int i = 0; i < totalSlots; i++) {
             float cx = mIsRtl
@@ -1362,38 +1405,30 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
             }
 
             if (i == 0) {
+                canvas.drawCircle(cx, cy, slotDiameter / 2f, appSlotPaint);
                 drawAppIconGlyph(canvas, cx, cy, Math.round(slotDiameter * 0.82f));
             } else {
                 int shortcutIndex = i - 1;
                 if (shortcutIndex < mSuperIconShortcuts.size()) {
                     WorkspaceItemInfo shortcutItem = mSuperIconShortcuts.get(shortcutIndex);
-                    Path buttonPath = new Path();
-                    buttonPath.addRoundRect(mSlotBounds[i], slotRadius, slotRadius, Path.Direction.CW);
-                    canvas.drawPath(buttonPath, buttonPaint);
-
-                    if (shortcutItem != null && shortcutItem.bitmap != null
-                            && shortcutItem.bitmap.icon != null) {
-                        Bitmap shortcutIcon = shortcutItem.bitmap.icon;
-                        float iconGlyphSize = slotDiameter * 0.58f;
-                        RectF glyphDest = new RectF(
-                                cx - iconGlyphSize / 2f,
-                                cy - iconGlyphSize / 2f,
-                                cx + iconGlyphSize / 2f,
-                                cy + iconGlyphSize / 2f);
-                        canvas.drawBitmap(shortcutIcon, null, glyphDest, bitmapPaint);
-                    }
+                    drawShortcutCircleButton(canvas, cx, cy, slotDiameter, shortcutItem,
+                            buttonFillColor, strokeColor, bitmapPaint);
                 }
             }
             canvas.restore();
         }
     }
 
-    private void draw1x2QuickFunctions(Canvas canvas, Rect bgBounds, Paint buttonPaint, Paint bitmapPaint) {
+    private void draw1x2QuickFunctions(Canvas canvas, Rect bgBounds, int appSlotFillColor,
+            int buttonFillColor, int strokeColor, Paint bitmapPaint) {
         int shortcutCount = mSuperIconShortcuts != null ? Math.min(2, mSuperIconShortcuts.size()) : 0;
         int totalSlots = Math.min(3, 1 + shortcutCount);
         float slotHeight = bgBounds.height() / (float) totalSlots;
         float slotDiameter = Math.min(bgBounds.width() * 0.72f, slotHeight * 0.85f);
-        float slotRadius = slotDiameter * 0.36f;
+
+        Paint appSlotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        appSlotPaint.setStyle(Paint.Style.FILL);
+        appSlotPaint.setColor(appSlotFillColor);
 
         for (int i = 0; i < totalSlots; i++) {
             float cx = bgBounds.centerX();
@@ -1407,26 +1442,14 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
             }
 
             if (i == 0) {
+                canvas.drawCircle(cx, cy, slotDiameter / 2f, appSlotPaint);
                 drawAppIconGlyph(canvas, cx, cy, Math.round(slotDiameter * 0.82f));
             } else {
                 int shortcutIndex = i - 1;
                 if (shortcutIndex < mSuperIconShortcuts.size()) {
                     WorkspaceItemInfo shortcutItem = mSuperIconShortcuts.get(shortcutIndex);
-                    Path buttonPath = new Path();
-                    buttonPath.addRoundRect(mSlotBounds[i], slotRadius, slotRadius, Path.Direction.CW);
-                    canvas.drawPath(buttonPath, buttonPaint);
-
-                    if (shortcutItem != null && shortcutItem.bitmap != null
-                            && shortcutItem.bitmap.icon != null) {
-                        Bitmap shortcutIcon = shortcutItem.bitmap.icon;
-                        float iconGlyphSize = slotDiameter * 0.58f;
-                        RectF glyphDest = new RectF(
-                                cx - iconGlyphSize / 2f,
-                                cy - iconGlyphSize / 2f,
-                                cx + iconGlyphSize / 2f,
-                                cy + iconGlyphSize / 2f);
-                        canvas.drawBitmap(shortcutIcon, null, glyphDest, bitmapPaint);
-                    }
+                    drawShortcutCircleButton(canvas, cx, cy, slotDiameter, shortcutItem,
+                            buttonFillColor, strokeColor, bitmapPaint);
                 }
             }
             canvas.restore();
@@ -1434,7 +1457,7 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
     }
 
     private void draw2x2QuickFunctions(Canvas canvas, Rect bgBounds, boolean isDarkBg,
-            Paint buttonPaint, Paint bitmapPaint) {
+            int appSlotFillColor, int buttonFillColor, int strokeColor, Paint bitmapPaint) {
         float cardW = bgBounds.width();
         float cardH = bgBounds.height();
 
@@ -1448,6 +1471,10 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         float iconDiameter = cardH * 0.32f;
         float iconCx = mIsRtl ? (bgBounds.right - cardW * 0.20f) : (bgBounds.left + cardW * 0.20f);
         float iconCy = bgBounds.top + cardH * 0.26f;
+        Paint appSlotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        appSlotPaint.setStyle(Paint.Style.FILL);
+        appSlotPaint.setColor(appSlotFillColor);
+        canvas.drawCircle(iconCx, iconCy, iconDiameter / 2f, appSlotPaint);
         drawAppIconGlyph(canvas, iconCx, iconCy, Math.round(iconDiameter * 0.88f));
 
         // Draw App Label in Hero Area
@@ -1470,12 +1497,11 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         }
         canvas.restore();
 
-        // 2. Bottom Row: Quick Functions Buttons
+        // 2. Bottom Row: Quick Functions Circular Buttons
         int shortcutCount = mSuperIconShortcuts != null ? Math.min(3, mSuperIconShortcuts.size()) : 0;
         if (shortcutCount > 0) {
             float btnWidth = cardW / (float) shortcutCount;
             float btnDiameter = Math.min(cardH * 0.34f, btnWidth * 0.72f);
-            float btnRadius = btnDiameter * 0.36f;
             float btnCy = bgBounds.top + cardH * 0.74f;
 
             for (int j = 0; j < shortcutCount; j++) {
@@ -1491,23 +1517,79 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
                     canvas.scale(mSlotPressScales[slotIdx], mSlotPressScales[slotIdx], btnCx, btnCy);
                 }
 
-                Path buttonPath = new Path();
-                buttonPath.addRoundRect(mSlotBounds[slotIdx], btnRadius, btnRadius, Path.Direction.CW);
-                canvas.drawPath(buttonPath, buttonPaint);
-
                 WorkspaceItemInfo shortcutItem = mSuperIconShortcuts.get(j);
-                if (shortcutItem != null && shortcutItem.bitmap != null && shortcutItem.bitmap.icon != null) {
-                    Bitmap shortcutIcon = shortcutItem.bitmap.icon;
-                    float iconGlyphSize = btnDiameter * 0.58f;
-                    RectF glyphDest = new RectF(
-                            btnCx - iconGlyphSize / 2f,
-                            btnCy - iconGlyphSize / 2f,
-                            btnCx + iconGlyphSize / 2f,
-                            btnCy + iconGlyphSize / 2f);
-                    canvas.drawBitmap(shortcutIcon, null, glyphDest, bitmapPaint);
-                }
+                drawShortcutCircleButton(canvas, btnCx, btnCy, btnDiameter, shortcutItem,
+                        buttonFillColor, strokeColor, bitmapPaint);
                 canvas.restore();
             }
+        }
+    }
+
+    private void drawShortcutCircleButton(Canvas canvas, float cx, float cy, float diameter,
+            WorkspaceItemInfo shortcutItem, int buttonFillColor, int strokeColor, Paint bitmapPaint) {
+        float radius = diameter / 2f;
+        Path circlePath = new Path();
+        circlePath.addCircle(cx, cy, radius, Path.Direction.CW);
+
+        Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        fillPaint.setStyle(Paint.Style.FILL);
+        fillPaint.setColor(buttonFillColor);
+        canvas.drawPath(circlePath, fillPaint);
+
+        if (shortcutItem != null && shortcutItem.bitmap != null && shortcutItem.bitmap.icon != null) {
+            Bitmap shortcutIcon = shortcutItem.bitmap.icon;
+            canvas.save();
+            canvas.clipPath(circlePath);
+
+            boolean whitePlate = hasWhiteBackgroundPlate(shortcutIcon);
+            float drawRadius = whitePlate ? (radius * 1.08f) : (radius * 1.04f);
+            RectF dest = new RectF(cx - drawRadius, cy - drawRadius, cx + drawRadius, cy + drawRadius);
+
+            if (whitePlate) {
+                bitmapPaint.setColorFilter(
+                        new PorterDuffColorFilter(buttonFillColor, PorterDuff.Mode.MULTIPLY));
+                canvas.drawBitmap(shortcutIcon, null, dest, bitmapPaint);
+                bitmapPaint.setColorFilter(null);
+            } else {
+                canvas.drawBitmap(shortcutIcon, null, dest, bitmapPaint);
+            }
+            canvas.restore();
+        }
+
+        Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        strokePaint.setStyle(Paint.Style.STROKE);
+        strokePaint.setStrokeWidth(Math.max(1f, getResources().getDisplayMetrics().density * 0.9f));
+        strokePaint.setColor(strokeColor);
+        canvas.drawCircle(cx, cy, radius, strokePaint);
+    }
+
+    private static boolean hasWhiteBackgroundPlate(Bitmap bmp) {
+        if (bmp == null || bmp.getWidth() < 8 || bmp.getHeight() < 8) {
+            return false;
+        }
+        try {
+            int w = bmp.getWidth();
+            int h = bmp.getHeight();
+            int[][] pts = {
+                { w / 2, Math.max(1, Math.round(h * 0.12f)) },
+                { w / 2, Math.min(h - 2, Math.round(h * 0.88f)) },
+                { Math.max(1, Math.round(w * 0.12f)), h / 2 },
+                { Math.min(w - 2, Math.round(w * 0.88f)), h / 2 }
+            };
+            int whiteCount = 0;
+            for (int[] pt : pts) {
+                int c = bmp.getPixel(pt[0], pt[1]);
+                int a = (c >>> 24) & 0xFF;
+                int r = (c >> 16) & 0xFF;
+                int g = (c >> 8) & 0xFF;
+                int b = c & 0xFF;
+                if (a > 200 && r > 235 && g > 235 && b > 235) {
+                    whiteCount++;
+                }
+            }
+            return whiteCount >= 3;
+        } catch (Exception ignored) {
+            return false;
         }
     }
 
@@ -1516,19 +1598,33 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         if (mSuperIconAdaptiveDrawable != null) {
             Drawable fg = mSuperIconAdaptiveDrawable.getForeground();
             if (fg != null) {
-                int fullFgSize = Math.round(glyphTargetSize * 1.5f);
+                boolean isLegacyWrapped = fg.getClass().getName().contains("FixedScaleDrawable");
+                int fullFgSize = Math.round(glyphTargetSize * (isLegacyWrapped ? 2.15f : 1.5f));
                 int fgLeft = Math.round(cx - fullFgSize / 2f);
                 int fgTop = Math.round(cy - fullFgSize / 2f);
+                canvas.save();
+                if (isLegacyWrapped) {
+                    Path clipCircle = new Path();
+                    clipCircle.addCircle(cx, cy, glyphTargetSize / 2f, Path.Direction.CW);
+                    canvas.clipPath(clipCircle);
+                }
                 fg.setBounds(fgLeft, fgTop, fgLeft + fullFgSize, fgTop + fullFgSize);
                 fg.draw(canvas);
+                canvas.restore();
                 drewAdaptiveFg = true;
             }
         }
         if (!drewAdaptiveFg && mIcon != null) {
+            Rect prevBounds = new Rect(mIcon.getBounds());
             int iconLeft = Math.round(cx - glyphTargetSize / 2f);
             int iconTop = Math.round(cy - glyphTargetSize / 2f);
             mIcon.setBounds(iconLeft, iconTop, iconLeft + glyphTargetSize, iconTop + glyphTargetSize);
             mIcon.draw(canvas);
+            if (mIconSize > 0) {
+                mIcon.setBounds(0, 0, mIconSize, mIconSize);
+            } else {
+                mIcon.setBounds(prevBounds);
+            }
         }
     }
 
@@ -1551,23 +1647,36 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         if (mSuperIconAdaptiveDrawable != null) {
             Drawable fg = mSuperIconAdaptiveDrawable.getForeground();
             if (fg != null) {
-                // AdaptiveIcon foreground has an intrinsic safe zone ratio of 72 / 108 = 1 / 1.5.
-                // Expanding outer bounds by 1.5x around the center ensures the visible glyph matches glyphTargetSize.
-                int fullFgSize = Math.round(glyphTargetSize * 1.5f);
+                boolean isLegacyWrapped = fg.getClass().getName().contains("FixedScaleDrawable");
+                int fullFgSize = Math.round(glyphTargetSize * (isLegacyWrapped ? 2.15f : 1.5f));
                 int fgLeft = Math.round(bgRectF.centerX() - fullFgSize / 2f);
                 int fgTop = Math.round(bgRectF.centerY() - fullFgSize / 2f);
+                canvas.save();
+                if (isLegacyWrapped) {
+                    Path clipCircle = new Path();
+                    clipCircle.addCircle(bgRectF.centerX(), bgRectF.centerY(),
+                            glyphTargetSize / 2f, Path.Direction.CW);
+                    canvas.clipPath(clipCircle);
+                }
                 fg.setBounds(fgLeft, fgTop, fgLeft + fullFgSize, fgTop + fullFgSize);
                 fg.draw(canvas);
+                canvas.restore();
                 drewAdaptiveFg = true;
             }
         }
 
         if (!drewAdaptiveFg) {
             if (mIcon != null) {
+                Rect prevBounds = new Rect(mIcon.getBounds());
                 int iconLeft = Math.round(bgRectF.centerX() - glyphTargetSize / 2f);
                 int iconTop = Math.round(bgRectF.centerY() - glyphTargetSize / 2f);
                 mIcon.setBounds(iconLeft, iconTop, iconLeft + glyphTargetSize, iconTop + glyphTargetSize);
                 mIcon.draw(canvas);
+                if (mIconSize > 0) {
+                    mIcon.setBounds(0, 0, mIconSize, mIconSize);
+                } else {
+                    mIcon.setBounds(prevBounds);
+                }
             }
         }
     }
@@ -1602,10 +1711,7 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
             int iconTextHeight = Utilities.calculateTextHeight(
                     dp.getWorkspaceIconProfile().getIconTextSizePx());
             int contentHeight = iconSize + iconPadding + iconTextHeight;
-            float yFactor = (dp.getDeviceProperties().isTablet()
-                    || dp.getDeviceProperties().isTwoPanels()
-                    || dp.isVerticalBarLayout()) ? 0.5f : 0.6666667f;
-            cellPaddingY = Math.round(Math.max(0, cellHeight - contentHeight) * yFactor);
+            cellPaddingY = Math.max(0, cellHeight - contentHeight) / 2;
         }
 
         int standardIconLabelTop = targetRow * (cellHeight + borderSpace.y)
@@ -1631,6 +1737,12 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
             drawDotIfNecessary(canvas);
             drawSelectionIndicatorIfNecessary(canvas);
             return;
+        }
+        if (mIcon != null && mIconSize > 0) {
+            Rect b = mIcon.getBounds();
+            if (b.left != 0 || b.top != 0 || b.width() != mIconSize || b.height() != mIconSize) {
+                mIcon.setBounds(0, 0, mIconSize, mIconSize);
+            }
         }
         super.onDraw(canvas);
         drawDotIfNecessary(canvas);
@@ -1839,10 +1951,7 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
             if (mDisplay == DISPLAY_WORKSPACE) {
                 cellYPadding = mDeviceProfile.getWorkspaceIconProfile().getCellYPaddingPx();
                 if (cellYPadding <= 0) {
-                    float yFactor = (mDeviceProfile.getDeviceProperties().isTablet()
-                            || mDeviceProfile.getDeviceProperties().isTwoPanels()
-                            || mDeviceProfile.isVerticalBarLayout()) ? 0.5f : 0.6666667f;
-                    cellYPadding = Math.round(Math.max(0, (availableHeight - cellHeightPx) * yFactor));
+                    cellYPadding = Math.max(0, (availableHeight - cellHeightPx) / 2);
                 }
             } else {
                 cellYPadding = Math.max(0, (availableHeight - cellHeightPx) / 2);

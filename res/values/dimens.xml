@@ -30,7 +30,7 @@
     <item name="aspect_ratio_landscape" format="float" type="dimen">10</item>
 
     <dimen name="dynamic_grid_cell_border_spacing">16dp</dimen>
-    <dimen name="cell_layout_padding">0dp</dimen>
+    <dimen name="cell_layout_padding">10.77dp</dimen>
     <dimen name="dynamic_grid_cell_padding_x">8dp</dimen>
 
     <!-- Hotseat -->

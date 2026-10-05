@@ -199,10 +199,7 @@ public class PreviewBackground extends DelegatedCellDrawing {
                     int contentHeight = iconSize
                             + grid.getWorkspaceIconProfile().getIconDrawablePaddingPx()
                             + iconTextHeight;
-                    float yFactor = (grid.getDeviceProperties().isTablet()
-                            || grid.getDeviceProperties().isTwoPanels()
-                            || grid.isVerticalBarLayout()) ? 0.5f : 0.6666667f;
-                    cellPaddingY = Math.round(Math.max(0, cellHeight - contentHeight) * yFactor);
+                    cellPaddingY = Math.max(0, (cellHeight - contentHeight) / 2);
                 }
                 topPadding = cellPaddingY;
             }

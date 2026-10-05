@@ -97,22 +97,22 @@ data class WorkspaceProfile(
         context: Context,
         inv: InvariantDeviceProfile,
     ): WorkspaceProfile {
-        if (inv.devicePaddingId == ResourceUtils.INVALID_RESOURCE_HANDLE) {
-            return this
+        if (inv.devicePaddingId != ResourceUtils.INVALID_RESOURCE_HANDLE) {
+            // Paddings were created assuming no scaling, so we first unscale the extra space.
+            val unscaledExtraSpace: Int = (extraSpace / cellScaleToFit).toInt()
+            val devicePaddings = DevicePaddings(context, inv.devicePaddingId)
+            val padding = devicePaddings.getDevicePadding(unscaledExtraSpace)
+            return copy(
+                maxEmptySpace = padding.maxEmptySpacePx,
+                workspaceTopPadding =
+                    Math.round(padding.getWorkspaceTopPadding(unscaledExtraSpace) * cellScaleToFit),
+                workspaceBottomPadding =
+                    Math.round(
+                        padding.getWorkspaceBottomPadding(unscaledExtraSpace) * cellScaleToFit
+                    ),
+            )
         }
-        // Paddings were created assuming no scaling, so we first unscale the extra space.
-        val unscaledExtraSpace: Int = (extraSpace / cellScaleToFit).toInt()
-        val devicePaddings = DevicePaddings(context, inv.devicePaddingId)
-        val padding = devicePaddings.getDevicePadding(unscaledExtraSpace)
-        return copy(
-            maxEmptySpace = padding.maxEmptySpacePx,
-            workspaceTopPadding =
-                Math.round(padding.getWorkspaceTopPadding(unscaledExtraSpace) * cellScaleToFit),
-            workspaceBottomPadding =
-                Math.round(
-                    padding.getWorkspaceBottomPadding(unscaledExtraSpace) * cellScaleToFit
-                ),
-        )
+        return this
     }
 
     // TODO(b/430382569)
@@ -158,12 +158,12 @@ data class WorkspaceProfile(
                 deviceProperties.isTwoPanels -> cellLayoutBorderSpacePx.x / 2
                 else -> res.getDimensionPixelSize(R.dimen.cell_layout_padding)
             }
-        var (workspacePadding, cellLayoutPaddingPx) =
+        val (workspacePadding, cellLayoutPaddingPx) =
             insetPadding(
                 noInsetWorkspacePadding,
                 Rect(cellLayoutPadding, cellLayoutPadding, cellLayoutPadding, cellLayoutPadding),
             )
-        var cellSize =
+        val cellSize =
             calculateCellSize(
                 cellLayoutBorderSpacePx = this.cellLayoutBorderSpacePx,
                 panelCount = this.panelCount,
@@ -177,61 +177,10 @@ data class WorkspaceProfile(
                         workspacePadding.top + workspacePadding.bottom,
                     ),
             )
-
-        // Match OOS Launcher WorkspaceParam vertical proportions on portrait phones:
-        // OOS uses oplusLayoutWorkspacePaddingTopDp = 60dp from screen top (60/800 = 0.075f)
-        // and oplusLayoutCellLayoutHeightDp = 564dp on an 800dp screen (564/800 = 0.705f).
-        if (!isVerticalLayout && !deviceProperties.isTablet && !deviceProperties.isTwoPanels) {
-            val oosTopFromScreenPx = Math.round(deviceProperties.heightPx * 0.075f)
-            val targetTopPadding =
-                max(workspacePadding.top, max(0, oosTopFromScreenPx - insets.top))
-            val availableHeightAfterTop =
-                deviceProperties.availableHeightPx - targetTopPadding - workspacePadding.bottom
-            val oosTargetCellLayoutHeight = Math.round(deviceProperties.heightPx * 0.705f)
-            val extraBottomPadding = max(0, availableHeightAfterTop - oosTargetCellLayoutHeight)
-            workspacePadding =
-                Rect(
-                    workspacePadding.left,
-                    targetTopPadding,
-                    workspacePadding.right,
-                    workspacePadding.bottom + extraBottomPadding,
-                )
-            cellSize =
-                calculateCellSize(
-                    cellLayoutBorderSpacePx = this.cellLayoutBorderSpacePx,
-                    panelCount = this.panelCount,
-                    deviceProperties = deviceProperties,
-                    numColumns = inv.numColumns,
-                    numRows = inv.numRows,
-                    cellLayoutPadding = cellLayoutPaddingPx,
-                    totalWorkspacePadding =
-                        Point(
-                            workspacePadding.left + workspacePadding.right,
-                            workspacePadding.top + workspacePadding.bottom,
-                        ),
-                )
-        }
-
-        val finalContentHeight =
-            iconSizePx +
-                iconDrawablePaddingPx +
-                com.android.launcher3.Utilities.calculateTextHeight(iconTextSizePx.toFloat())
-        val yPaddingFactor =
-            if (isVerticalLayout || deviceProperties.isTablet || deviceProperties.isTwoPanels) {
-                0.5f
-            } else {
-                0.6666667f
-            }
-        val updatedCellYPaddingPx =
-            Math.round(max(0, cellSize.y - finalContentHeight) * yPaddingFactor)
-
         return copy(
             workspacePadding = workspacePadding,
             cellLayoutPaddingPx = cellLayoutPaddingPx,
             cellSize = cellSize,
-            cellWidthPx = if (cellSize.x > 0) cellSize.x else cellWidthPx,
-            cellHeightPx = if (cellSize.y > 0) cellSize.y else cellHeightPx,
-            cellYPaddingPx = updatedCellYPaddingPx,
         )
     }
 

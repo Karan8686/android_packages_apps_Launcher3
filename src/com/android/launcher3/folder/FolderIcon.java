@@ -1252,10 +1252,7 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
             }
             int cellYPadding = mActivity.getDeviceProfile().getWorkspaceIconProfile().getCellYPaddingPx();
             if (cellYPadding <= 0) {
-                float yFactor = (mActivity.getDeviceProfile().getDeviceProperties().isTablet()
-                        || mActivity.getDeviceProfile().getDeviceProperties().isTwoPanels()
-                        || mActivity.getDeviceProfile().isVerticalBarLayout()) ? 0.5f : 0.6666667f;
-                cellYPadding = Math.round(Math.max(0, (availableHeight - cellHeightPx) * yFactor));
+                cellYPadding = Math.max(0, (availableHeight - cellHeightPx) / 2);
             }
             setPadding(getPaddingLeft(), cellYPadding, getPaddingRight(), getPaddingBottom());
         }
@@ -1321,11 +1318,7 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
                     if (cellPaddingY <= 0) {
                         Paint.FontMetrics fm = mFolderName.getPaint().getFontMetrics();
                         int th = (int) Math.ceil(fm.bottom - fm.top);
-                        float yFactor = (dp.getDeviceProperties().isTablet()
-                                || dp.getDeviceProperties().isTwoPanels()
-                                || dp.isVerticalBarLayout()) ? 0.5f : 0.6666667f;
-                        cellPaddingY = Math.round(
-                                Math.max(0, cellHeight - (iconSize + iconPadding + th)) * yFactor);
+                        cellPaddingY = Math.max(0, (cellHeight - (iconSize + iconPadding + th)) / 2);
                     }
 
                     int standardIconLabelTop = targetRow * (cellHeight + borderSpace.y)
