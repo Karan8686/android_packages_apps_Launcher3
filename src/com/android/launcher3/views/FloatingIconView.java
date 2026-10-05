@@ -423,9 +423,9 @@ public class FloatingIconView extends FrameLayout implements
         if (isMultiSpanSuperIcon) {
             BubbleTextView btv = (BubbleTextView) mOriginalIcon;
             mClipIconView.setMultiSpanSuperIconParams(true, btv.getSpanX(), btv.getSpanY(),
-                    btv.getIconBackgroundCornerRadius());
+                    btv.getIconBackgroundCornerRadius(), btv);
         } else {
-            mClipIconView.setMultiSpanSuperIconParams(false, 1, 1, 0f);
+            mClipIconView.setMultiSpanSuperIconParams(false, 1, 1, 0f, null);
         }
         final int originalHeight = lp.height;
         final int originalWidth = lp.width;

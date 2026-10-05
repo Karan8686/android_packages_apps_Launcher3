@@ -477,13 +477,14 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
 
     @UiThread
     public void applyFromWorkspaceItem(WorkspaceItemInfo info) {
-        applyIconAndLabel(info);
         setItemInfo(info);
+        applyIconAndLabel(info);
 
         applyDotState(info, false /* animate */);
         setDownloadStateContentDescription(info, info.getProgressLevel());
         if (isMultiSpan()) {
             loadSuperIconDrawableIfNecessary();
+            loadSuperIconShortcutsIfNecessary();
         }
     }
 
@@ -504,9 +505,8 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
      */
     @UiThread
     public void applyFromItemInfoWithIcon(ItemInfoWithIcon info) {
-        applyIconAndLabel(info);
-        // We don't need to check the info since it's not a WorkspaceItemInfo
         setItemInfo(info);
+        applyIconAndLabel(info);
 
         // Verify high res immediately
         verifyHighRes();
@@ -514,6 +514,7 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         setDownloadStateContentDescription(info, info.getProgressLevel());
         if (isMultiSpan()) {
             loadSuperIconDrawableIfNecessary();
+            loadSuperIconShortcutsIfNecessary();
         }
     }
 
@@ -609,7 +610,9 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         mSuperIconBadge = null;
         mSuperIconFgHasOpaquePlate = null;
         mIsLoadingSuperIcon = false;
-        mSuperIconShortcuts = null;
+        List<WorkspaceItemInfo> cachedShortcuts = SuperIconShortcutHelper.getCachedShortcuts(info);
+        mSuperIconShortcuts = (cachedShortcuts != null && !cachedShortcuts.isEmpty())
+                ? cachedShortcuts : null;
         mIsLoadingShortcuts = false;
         mActivePressedSlot = -1;
         mLastClickedSlot = -1;
@@ -1312,6 +1315,13 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         if (itemInfo == null) {
             return;
         }
+        List<WorkspaceItemInfo> cached = SuperIconShortcutHelper.getCachedShortcuts(itemInfo);
+        if (cached != null) {
+            if (!cached.isEmpty()) {
+                mSuperIconShortcuts = cached;
+            }
+            return;
+        }
         mIsLoadingShortcuts = true;
         SuperIconShortcutHelper.loadShortcutsForApp(getContext(), itemInfo, shortcuts -> {
             mIsLoadingShortcuts = false;
@@ -1320,6 +1330,17 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
                 invalidate();
             }
         });
+    }
+
+    public void drawSuperIconContentForFloatingView(Canvas canvas, Rect bgBounds) {
+        if (mSuperIconShortcuts == null && !mIsLoadingShortcuts) {
+            loadSuperIconShortcutsIfNecessary();
+        }
+        if (hasQuickFunctions()) {
+            drawQuickFunctionsContent(canvas, bgBounds);
+        } else {
+            drawStandardSuperIconGlyph(canvas, bgBounds, new RectF(bgBounds));
+        }
     }
 
     protected void drawMultiSpanSuperIcon(Canvas canvas) {

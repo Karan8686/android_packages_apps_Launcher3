@@ -54,6 +54,20 @@ public class SuperIconShortcutHelper {
         void onShortcutsLoaded(@NonNull List<WorkspaceItemInfo> shortcuts);
     }
 
+    @Nullable
+    public static List<WorkspaceItemInfo> getCachedShortcuts(@Nullable ItemInfo appInfo) {
+        if (appInfo == null) {
+            return null;
+        }
+        final ComponentKey key = appInfo.getComponentKey();
+        if (key == null) {
+            return null;
+        }
+        synchronized (sCache) {
+            return sCache.get(key);
+        }
+    }
+
     /**
      * Asynchronously loads up to 2 published shortcuts for the specified app item.
      */
