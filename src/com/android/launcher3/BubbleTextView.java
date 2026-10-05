@@ -1707,11 +1707,9 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         if (cellPaddingY <= 0) {
             cellPaddingY = dp.getWorkspaceIconProfile().getCellYPaddingPx();
         }
-        if (cellPaddingY <= 0) {
-            int iconTextHeight = Utilities.calculateTextHeight(
-                    dp.getWorkspaceIconProfile().getIconTextSizePx());
-            int contentHeight = iconSize + iconPadding + iconTextHeight;
-            cellPaddingY = Math.max(0, cellHeight - contentHeight) / 2;
+        if (cellPaddingY < 0) {
+            int cHeight = dp.getWorkspaceIconProfile().getCellHeightPx();
+            cellPaddingY = Math.max(0, (cellHeight - cHeight) / 2);
         }
 
         int standardIconLabelTop = targetRow * (cellHeight + borderSpace.y)
@@ -1950,8 +1948,11 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
             int cellYPadding;
             if (mDisplay == DISPLAY_WORKSPACE) {
                 cellYPadding = mDeviceProfile.getWorkspaceIconProfile().getCellYPaddingPx();
-                if (cellYPadding <= 0) {
-                    cellYPadding = Math.max(0, (availableHeight - cellHeightPx) / 2);
+                if (cellYPadding < 0 || !shouldShowLabel()) {
+                    int cHeight = shouldShowLabel()
+                            ? mDeviceProfile.getWorkspaceIconProfile().getCellHeightPx()
+                            : mIconSize;
+                    cellYPadding = Math.max(0, (availableHeight - cHeight) / 2);
                 }
             } else {
                 cellYPadding = Math.max(0, (availableHeight - cellHeightPx) / 2);

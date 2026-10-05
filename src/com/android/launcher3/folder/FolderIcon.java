@@ -1238,11 +1238,9 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
 
         if (!isAllAppsFolder && (shouldCenterIcon || !shouldShowLabel)) {
             int iconSize = mActivity.getDeviceProfile().getWorkspaceIconProfile().getIconSizePx();
-            int iconPadding = mActivity.getDeviceProfile().getWorkspaceIconProfile()
-                    .getIconDrawablePaddingPx();
-            Paint.FontMetrics fm = mFolderName.getPaint().getFontMetrics();
-            int textHeight = shouldShowLabel ? (int) Math.ceil(fm.bottom - fm.top) : 0;
-            int cellHeightPx = iconSize + iconPadding + textHeight;
+            int cellHeightPx = shouldShowLabel
+                    ? mActivity.getDeviceProfile().getWorkspaceIconProfile().getCellHeightPx()
+                    : iconSize;
             int availableHeight = MeasureSpec.getSize(heightMeasureSpec);
             if (isMultiSpanFolder()) {
                 int rowGap = mActivity.getDeviceProfile().getWorkspaceIconProfile()
@@ -1251,7 +1249,7 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
                         / getCurrentSpanY();
             }
             int cellYPadding = mActivity.getDeviceProfile().getWorkspaceIconProfile().getCellYPaddingPx();
-            if (cellYPadding <= 0) {
+            if (cellYPadding < 0 || !shouldShowLabel) {
                 cellYPadding = Math.max(0, (availableHeight - cellHeightPx) / 2);
             }
             setPadding(getPaddingLeft(), cellYPadding, getPaddingRight(), getPaddingBottom());
@@ -1315,10 +1313,9 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
                     if (cellPaddingY <= 0) {
                         cellPaddingY = dp.getWorkspaceIconProfile().getCellYPaddingPx();
                     }
-                    if (cellPaddingY <= 0) {
-                        Paint.FontMetrics fm = mFolderName.getPaint().getFontMetrics();
-                        int th = (int) Math.ceil(fm.bottom - fm.top);
-                        cellPaddingY = Math.max(0, (cellHeight - (iconSize + iconPadding + th)) / 2);
+                    if (cellPaddingY < 0) {
+                        int cHeight = dp.getWorkspaceIconProfile().getCellHeightPx();
+                        cellPaddingY = Math.max(0, (cellHeight - cHeight) / 2);
                     }
 
                     int standardIconLabelTop = targetRow * (cellHeight + borderSpace.y)

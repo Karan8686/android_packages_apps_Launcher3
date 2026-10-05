@@ -179,6 +179,15 @@ public class PreviewBackground extends DelegatedCellDrawing {
         int backgroundLeft;
         int backgroundTop;
 
+        if (topPadding <= 0) {
+            int cellPaddingY = grid.getWorkspaceIconProfile().getCellYPaddingPx();
+            if (cellPaddingY < 0) {
+                int cHeight = grid.getWorkspaceIconProfile().getCellHeightPx();
+                cellPaddingY = Math.max(0, (cellHeight - cHeight) / 2);
+            }
+            topPadding = cellPaddingY;
+        }
+
         if (spanX == 1 && spanY == 1) {
             backgroundWidth = previewSize;
             backgroundHeight = previewSize;
@@ -188,21 +197,8 @@ public class PreviewBackground extends DelegatedCellDrawing {
             backgroundTop = topPadding + grid.folderIconOffsetYPx;
         } else {
             // Multi-span enlarged folders and Super Icons (2x2, 2x1, 1x2, etc.)
-            // Match OOS SizeSpacingConfig + OplusPreviewBackground:
             // Top aligns with row 0 icon top (topPadding + folderIconOffsetYPx)
             // Bottom aligns with row (spanY - 1) icon bottom
-            if (topPadding <= 0) {
-                int cellPaddingY = grid.getWorkspaceIconProfile().getCellYPaddingPx();
-                if (cellPaddingY <= 0) {
-                    int iconTextHeight = Utilities.calculateTextHeight(
-                            grid.getWorkspaceIconProfile().getIconTextSizePx());
-                    int contentHeight = iconSize
-                            + grid.getWorkspaceIconProfile().getIconDrawablePaddingPx()
-                            + iconTextHeight;
-                    cellPaddingY = Math.max(0, (cellHeight - contentHeight) / 2);
-                }
-                topPadding = cellPaddingY;
-            }
             backgroundHeight = (spanY - 1) * (cellHeight + borderSpace.y) + previewSize;
             backgroundTop = topPadding + grid.folderIconOffsetYPx;
 
