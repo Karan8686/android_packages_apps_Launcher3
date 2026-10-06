@@ -131,6 +131,13 @@ internal object HomeSettingsRoutes {
             KEY_DRAWER_OPEN_KEYBOARD,
             KEY_HOTSEAT_SEARCH_BAR,
             KEY_HOTSEAT_SEARCH_PROVIDER,
+            KEY_COMPACT_SEARCH_BAR,
+            KEY_COMPACT_SEARCH_BAR_ACTION,
+            KEY_DOCK_THEME,
+            KEY_DOCK_MUSIC_SEARCH,
+            KEY_HOTSEAT_QSB_OPACITY,
+            KEY_HOTSEAT_QSB_STROKE_WIDTH,
+            KEY_SEARCH_RADIUS_SIZE,
             KEY_SUGGESTIONS -> SEARCH
             KEY_ALL_APPS_DRAWER_SETTINGS,
             KEY_ALL_APPS_DRAWER_OPTIONS,

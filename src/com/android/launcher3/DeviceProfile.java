@@ -150,6 +150,7 @@ public class DeviceProfile {
     public int hotseatQsbWidth; // only used when isQsbInline
     public int hotseatBorderSpace;
     private boolean mIsHotseatQsbEnabled;
+    private boolean mIsCompactSearchBarEnabled;
     // Space required for the bubble bar between the hotseat and the edge of the screen. If there's
     // not enough space, the hotseat will adjust itself for the bubble bar.
     private final int mBubbleBarSpaceThresholdPx;
@@ -382,6 +383,7 @@ public class DeviceProfile {
                 mIsScalableGrid
         );
         mIsHotseatQsbEnabled = shouldEnableHotseatQsb(context);
+        mIsCompactSearchBarEnabled = shouldEnableCompactSearchBar(context);
 
         if (!isVerticalBarLayout()) {
             // Have a little space between the inset and the QSB
@@ -590,16 +592,22 @@ public class DeviceProfile {
         return mIsHotseatQsbEnabled && getHotseatProfile().getQsbHeight() > 0;
     }
 
+    public boolean isCompactSearchBarEnabled() {
+        return mIsCompactSearchBarEnabled && isHotseatQsbEnabled();
+    }
+
     public int getHotseatQsbHeight() {
         return isHotseatQsbEnabled() ? getHotseatProfile().getQsbHeight() : 0;
     }
 
     public boolean updateHotseatQsbEnabled(Context context) {
         boolean enabled = shouldEnableHotseatQsb(context);
-        if (mIsHotseatQsbEnabled == enabled) {
+        boolean compactEnabled = shouldEnableCompactSearchBar(context);
+        if (mIsHotseatQsbEnabled == enabled && mIsCompactSearchBarEnabled == compactEnabled) {
             return false;
         }
         mIsHotseatQsbEnabled = enabled;
+        mIsCompactSearchBarEnabled = compactEnabled;
         updateHotseatSizes(getWorkspaceIconProfile().getIconSizePx());
         updateWorkspacePadding(context);
         return true;
@@ -684,6 +692,11 @@ public class DeviceProfile {
     private boolean shouldEnableHotseatQsb(Context context) {
         return OseWidgetManager.isSearchBarEnabled(context)
                 && getHotseatProfile().getQsbHeight() > 0;
+    }
+
+    private boolean shouldEnableCompactSearchBar(Context context) {
+        return shouldEnableHotseatQsb(context)
+                && LauncherPrefsExt.COMPACT_SEARCH_BAR.get(context);
     }
 
     private int getHotseatQsbVisualHeight() {
@@ -934,6 +947,7 @@ public class DeviceProfile {
         }
 
         mIsHotseatQsbEnabled = shouldEnableHotseatQsb(context);
+        mIsCompactSearchBarEnabled = shouldEnableCompactSearchBar(context);
         AxAllAppsDisplayPrefs.INSTANCE.get(context).applyToDeviceProfile(context, this);
 
         updateHotseatSizes(getWorkspaceIconProfile().getIconSizePx());
@@ -1317,20 +1331,26 @@ public class DeviceProfile {
             }
 
         } else if (mIsScalableGrid) {
+            int hotseatBarBottomPadding = getHotseatBarBottomPadding();
+            int hotseatBarTopPadding =
+                    hotseatBarSizePx - hotseatBarBottomPadding - hotseatCellHeightPx;
             int iconExtraSpacePx = getWorkspaceIconProfile().getIconSizePx() - getIconVisibleSizePx(
                     getWorkspaceIconProfile().getIconSizePx());
             int sideSpacing =
                     (mDeviceProperties.getAvailableWidthPx() - (hotseatQsbWidth + iconExtraSpacePx))
                             / 2;
             hotseatBarPadding.set(sideSpacing,
-                    0,
+                    hotseatBarTopPadding,
                     sideSpacing,
-                    getHotseatBarBottomPadding());
+                    hotseatBarBottomPadding);
         } else {
             // We want the edges of the hotseat to line up with the edges of the workspace, but the
             // icons in the hotseat are a different size, and so don't line up perfectly. To account
             // for this, we pad the left and right of the hotseat with half of the difference of a
             // workspace cell vs a hotseat cell.
+            int hotseatBarBottomPadding = getHotseatBarBottomPadding();
+            int hotseatBarTopPadding =
+                    hotseatBarSizePx - hotseatBarBottomPadding - hotseatCellHeightPx;
             float workspaceCellWidth = (float) mDeviceProperties.getWidthPx() / inv.numColumns;
             float hotseatCellWidth = (float) mDeviceProperties.getWidthPx() / numShownHotseatIcons;
             int hotseatAdjustment = Math.round((workspaceCellWidth - hotseatCellWidth) / 2);
@@ -1338,11 +1358,11 @@ public class DeviceProfile {
                     hotseatAdjustment + mWorkspaceProfile.getWorkspacePadding().left
                             + mWorkspaceProfile.getCellLayoutPaddingPx().left
                             + mInsets.left,
-                    0,
+                    hotseatBarTopPadding,
                     hotseatAdjustment + mWorkspaceProfile.getWorkspacePadding().right
                             + mWorkspaceProfile.getCellLayoutPaddingPx().right
                             + mInsets.right,
-                    getHotseatBarBottomPadding());
+                    hotseatBarBottomPadding);
         }
         return hotseatBarPadding;
     }
@@ -1408,7 +1428,7 @@ public class DeviceProfile {
         if (isQsbInline) {
             offsetY = getHotseatBarBottomPadding()
                     - ((getHotseatQsbHeight() - hotseatCellHeightPx) / 2);
-        } else if (isTaskbarPresent) { // QSB on top
+        } else if (isTaskbarPresent || isCompactSearchBarEnabled()) { // QSB on top
             offsetY = hotseatBarSizePx - getHotseatQsbHeight()
                     + getHotseatQsbShadowHeight();
         } else {
@@ -1421,7 +1441,7 @@ public class DeviceProfile {
      * Returns the number of pixels the hotseat is translated from the bottom of the screen.
      */
     private int getHotseatBarBottomPadding() {
-        if (isTaskbarPresent || isQsbInline) { // QSB on top or inline
+        if (isTaskbarPresent || isQsbInline || isCompactSearchBarEnabled()) { // QSB on top or inline
             return hotseatBarBottomSpacePx - (Math.abs(
                     hotseatCellHeightPx - getWorkspaceIconProfile().getIconSizePx()) / 2);
         } else {

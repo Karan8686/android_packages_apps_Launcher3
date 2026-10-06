@@ -39,6 +39,7 @@ import com.android.launcher3.LauncherPrefsExt
 import com.android.launcher3.R
 import com.android.launcher3.allapps.search.AxSearchHistory
 import com.android.launcher3.dagger.LauncherComponentProvider.appComponent
+import com.android.launcher3.qsb.CompactSearchBar
 import com.android.launcher3.qsb.OseWidgetManager
 
 @Composable
@@ -319,14 +320,22 @@ internal fun SearchScreen(activity: Activity) {
     val dockSearchProviderPreference = rememberLauncherPreference(
         LauncherPrefsExt.HOTSEAT_SEARCH_PROVIDER,
     )
+    val compactSearchBarPreference = rememberLauncherPreference(
+        LauncherPrefsExt.COMPACT_SEARCH_BAR,
+    )
+    val compactSearchActionPreference = rememberLauncherPreference(
+        LauncherPrefsExt.COMPACT_SEARCH_BAR_ACTION,
+    )
     val oseWidgetManager = remember(context) { context.appComponent.oseWidgetManager }
     val canConfigureSearchWidget = remember(
         dockSearchPreference.value,
         dockSearchProviderPreference.value,
+        compactSearchBarPreference.value,
         oseWidgetManager,
         resumeVersion,
     ) {
-        dockSearchPreference.value &&
+        !compactSearchBarPreference.value &&
+            dockSearchPreference.value &&
             dockSearchProviderPreference.value != OseWidgetManager.SEARCH_PROVIDER_NONE &&
             oseWidgetManager.canConfigure()
     }
@@ -341,6 +350,70 @@ internal fun SearchScreen(activity: Activity) {
                     title = stringResource(R.string.dock_search_provider_settings_title),
                     summary = stringResource(R.string.dock_search_provider_settings_summary),
                     onClick = { oseWidgetManager.startConfigActivity(activity) },
+                )
+            }
+        }
+        item {
+            BooleanPreference(
+                item = LauncherPrefsExt.COMPACT_SEARCH_BAR,
+                titleRes = R.string.compact_search_bar_title,
+                summaryRes = R.string.compact_search_bar_summary,
+            )
+        }
+        if (compactSearchBarPreference.value) {
+            item {
+                CompactSearchActionPreference()
+            }
+            if (compactSearchActionPreference.value == CompactSearchBar.ACTION_MIC) {
+                item {
+                    BooleanPreference(
+                        item = LauncherPrefsExt.DOCK_MUSIC_SEARCH,
+                        titleRes = R.string.dock_music_search_title,
+                        summaryRes = R.string.dock_music_search_summary,
+                    )
+                }
+            }
+            item {
+                BooleanPreference(
+                    item = LauncherPrefsExt.DOCK_THEME,
+                    titleRes = R.string.dock_theme_title,
+                    summaryRes = R.string.dock_theme_summary,
+                )
+            }
+            item {
+                IntSliderPreference(
+                    item = LauncherPrefsExt.HOTSEAT_QSB_OPACITY,
+                    titleRes = R.string.hotseat_qsb_opacity_title,
+                    min = 0,
+                    max = 100,
+                    defaultValue = 100,
+                    valueLabel = { stringResource(R.string.home_settings_percent_value, it) },
+                )
+            }
+            item {
+                IntSliderPreference(
+                    item = LauncherPrefsExt.HOTSEAT_QSB_STROKE_WIDTH,
+                    titleRes = R.string.hotseat_qsb_stroke_width_title,
+                    min = 0,
+                    max = 10,
+                    defaultValue = 0,
+                    valueLabel = { stringResource(R.string.home_settings_dp_value, it) },
+                )
+            }
+            item {
+                IntSliderPreference(
+                    item = LauncherPrefsExt.SEARCH_RADIUS_SIZE,
+                    titleRes = R.string.search_radius_size_title,
+                    min = -1,
+                    max = 30,
+                    defaultValue = -1,
+                    valueLabel = {
+                        if (it < 0) {
+                            stringResource(R.string.icon_shape_system_default)
+                        } else {
+                            stringResource(R.string.home_settings_dp_value, it)
+                        }
+                    },
                 )
             }
         }
@@ -366,6 +439,32 @@ internal fun SearchScreen(activity: Activity) {
             }
         }
     }
+}
+
+@Composable
+private fun CompactSearchActionPreference() {
+    val actionPreference = rememberLauncherPreference(LauncherPrefsExt.COMPACT_SEARCH_BAR_ACTION)
+    val options = listOf(
+        CompactSearchBar.ACTION_GOOGLE_SEARCH to
+            stringResource(R.string.compact_search_bar_action_google_search),
+        CompactSearchBar.ACTION_LENS to
+            stringResource(R.string.compact_search_bar_action_lens),
+        CompactSearchBar.ACTION_MIC to
+            stringResource(R.string.compact_search_bar_action_mic),
+        CompactSearchBar.ACTION_GEMINI to
+            stringResource(R.string.compact_search_bar_action_gemini),
+    )
+    val selectedAction = actionPreference.value.takeIf { value ->
+        options.any { it.first == value }
+    } ?: CompactSearchBar.ACTION_GOOGLE_SEARCH
+    ListPreference(
+        title = stringResource(R.string.compact_search_bar_action_title),
+        summary = options.firstOrNull { it.first == selectedAction }?.second
+            ?: stringResource(R.string.compact_search_bar_action_summary),
+        options = options,
+        value = selectedAction,
+        onValueChange = { actionPreference.onChange(it) },
+    )
 }
 
 @Composable

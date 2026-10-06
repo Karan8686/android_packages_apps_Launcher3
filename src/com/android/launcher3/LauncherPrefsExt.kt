@@ -150,6 +150,20 @@ object LauncherPrefsExt {
         backedUpItem("pref_hotseat_search_bar", true, EncryptionType.SECURE_SETTINGS)
     @JvmField val HOTSEAT_SEARCH_PROVIDER =
         backedUpItem("pref_hotseat_search_provider", "none", EncryptionType.SECURE_SETTINGS)
+    @JvmField val COMPACT_SEARCH_BAR =
+        backedUpItem("pref_compact_search_bar", false, EncryptionType.SECURE_SETTINGS)
+    @JvmField val COMPACT_SEARCH_BAR_ACTION =
+        backedUpItem("pref_compact_search_bar_action", "google_search", EncryptionType.SECURE_SETTINGS)
+    @JvmField val DOCK_THEME =
+        backedUpItem("pref_dock_theme", false, EncryptionType.SECURE_SETTINGS)
+    @JvmField val DOCK_MUSIC_SEARCH =
+        backedUpItem("pref_dock_music_search", false, EncryptionType.SECURE_SETTINGS)
+    @JvmField val HOTSEAT_QSB_OPACITY =
+        backedUpItem("pref_hotseat_qsb_opacity", 100, EncryptionType.SECURE_SETTINGS)
+    @JvmField val HOTSEAT_QSB_STROKE_WIDTH =
+        backedUpItem("pref_hotseat_qsb_stroke_width", 0, EncryptionType.SECURE_SETTINGS)
+    @JvmField val SEARCH_RADIUS_SIZE =
+        backedUpItem("pref_search_radius_size", -1, EncryptionType.SECURE_SETTINGS)
     @JvmField val WORKSPACE_DOUBLE_TAP_ACTION =
         backedUpItem(
             "pref_workspace_double_tap_action",
@@ -435,6 +449,13 @@ object LauncherPrefsExt {
         WORKSPACE_WIDGET_UNLIMITED_SIZE,
         HOTSEAT_SEARCH_BAR,
         HOTSEAT_SEARCH_PROVIDER,
+        COMPACT_SEARCH_BAR,
+        COMPACT_SEARCH_BAR_ACTION,
+        DOCK_THEME,
+        DOCK_MUSIC_SEARCH,
+        HOTSEAT_QSB_OPACITY,
+        HOTSEAT_QSB_STROKE_WIDTH,
+        SEARCH_RADIUS_SIZE,
         WORKSPACE_DOUBLE_TAP_ACTION,
         ICON_PACK_PACKAGE,
         THEMED_ICONS_ENABLED,

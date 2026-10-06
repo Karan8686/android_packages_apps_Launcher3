@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.android.launcher3.qsb.CompactSearchBar
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/qsb_widget_height"
+    android:layout_alignParentTop="true"
+    android:layout_centerHorizontal="true"
+    android:layout_gravity="top|center_horizontal"
+    android:contentDescription="@string/label_search">
+
+    <LinearLayout
+        android:id="@+id/compact_search_bar_inner"
+        android:layout_width="@dimen/compact_search_bar_width"
+        android:layout_height="@dimen/compact_search_bar_height"
+        android:layout_gravity="center"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?android:attr/selectableItemBackground"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:id="@+id/gemini_icon"
+            android:layout_width="@dimen/compact_search_bar_icon_size"
+            android:layout_height="@dimen/compact_search_bar_icon_size"
+            android:layout_marginEnd="@dimen/compact_search_bar_icon_end_gap"
+            android:contentDescription="@string/label_gemini_search"
+            android:importantForAccessibility="no"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_gemini_color" />
+
+        <TextView
+            android:id="@+id/compact_search_bar_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/compact_search_bar_icon_text_gap"
+            android:layout_marginEnd="@dimen/compact_search_bar_text_end_gap"
+            android:fontFamily="variable-headline-large-emphasized"
+            android:gravity="center"
+            android:text="@string/label_search"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="@dimen/compact_search_bar_text_size" />
+
+    </LinearLayout>
+
+</com.android.launcher3.qsb.CompactSearchBar>

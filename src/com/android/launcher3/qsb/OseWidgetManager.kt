@@ -95,6 +95,7 @@ constructor(
             searchPreferenceListener,
             LauncherPrefsExt.HOTSEAT_SEARCH_BAR,
             LauncherPrefsExt.HOTSEAT_SEARCH_PROVIDER,
+            LauncherPrefsExt.COMPACT_SEARCH_BAR,
         )
 
         val idpListener = OnIDPChangeListener { updateWidgetSizeAsync() }
@@ -104,6 +105,7 @@ constructor(
                 searchPreferenceListener,
                 LauncherPrefsExt.HOTSEAT_SEARCH_BAR,
                 LauncherPrefsExt.HOTSEAT_SEARCH_PROVIDER,
+                LauncherPrefsExt.COMPACT_SEARCH_BAR,
             )
             idp.removeOnChangeListener(idpListener)
             widgetHost.stopListening()
@@ -216,10 +218,10 @@ constructor(
 
         @JvmStatic
         fun isSearchBarEnabled(launcherPrefs: LauncherPrefs): Boolean {
+            if (launcherPrefs.get(LauncherPrefsExt.COMPACT_SEARCH_BAR)) return true
+            if (!launcherPrefs.get(LauncherPrefsExt.HOTSEAT_SEARCH_BAR)) return false
             val provider = launcherPrefs.get(LauncherPrefsExt.HOTSEAT_SEARCH_PROVIDER)
-            return launcherPrefs.get(LauncherPrefsExt.HOTSEAT_SEARCH_BAR) &&
-                provider.isNotBlank() &&
-                provider != SEARCH_PROVIDER_NONE
+            return provider.isNotBlank() && provider != SEARCH_PROVIDER_NONE
         }
 
         @JvmStatic
@@ -230,6 +232,9 @@ constructor(
         @JvmStatic
         fun getSearchWidgetPackageName(context: Context): String? {
             if (!isSearchBarEnabled(context)) return null
+            val selectedProvider =
+                LauncherPrefs.get(context).get(LauncherPrefsExt.HOTSEAT_SEARCH_PROVIDER)
+            ComponentName.unflattenFromString(selectedProvider)?.packageName?.let { return it }
             return getSearchWidgetProviderInfo(context)?.provider?.packageName
                 ?: getSelectedSearchPackageName(context)
         }
@@ -253,6 +258,7 @@ constructor(
             fallbackPackage: String?,
         ): AppWidgetProviderInfo? {
             if (!isSearchBarEnabled(launcherPrefs)) return null
+            if (launcherPrefs.get(LauncherPrefsExt.COMPACT_SEARCH_BAR)) return null
             val selectedProvider = launcherPrefs.get(LauncherPrefsExt.HOTSEAT_SEARCH_PROVIDER)
             ComponentName.unflattenFromString(selectedProvider)?.let {
                 findSearchWidgetForPackage(context, it.packageName)?.let { widget -> return widget }

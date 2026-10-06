@@ -22,6 +22,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.RectF
 import android.util.AttributeSet
+import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
@@ -59,7 +60,8 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     private var suppressClickAfterLongPress = false
     private val hotseatSearchListener = LauncherPrefChangeListener { key ->
         if (key == LauncherPrefsExt.HOTSEAT_SEARCH_BAR.sharedPrefKey ||
-            key == LauncherPrefsExt.HOTSEAT_SEARCH_PROVIDER.sharedPrefKey) {
+            key == LauncherPrefsExt.HOTSEAT_SEARCH_PROVIDER.sharedPrefKey ||
+            key == LauncherPrefsExt.COMPACT_SEARCH_BAR.sharedPrefKey) {
             syncSearchVisibility()
         }
     }
@@ -70,6 +72,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
             hotseatSearchListener,
             LauncherPrefsExt.HOTSEAT_SEARCH_BAR,
             LauncherPrefsExt.HOTSEAT_SEARCH_PROVIDER,
+            LauncherPrefsExt.COMPACT_SEARCH_BAR,
         )
         syncSearchVisibility()
     }
@@ -88,6 +91,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
             hotseatSearchListener,
             LauncherPrefsExt.HOTSEAT_SEARCH_BAR,
             LauncherPrefsExt.HOTSEAT_SEARCH_PROVIDER,
+            LauncherPrefsExt.COMPACT_SEARCH_BAR,
         )
         detachedFromWindow()
     }
@@ -120,8 +124,17 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
             return
         }
         visibility = View.VISIBLE
-        val widgetView = provider?.let { oseWidgetManager.createWidgetView(context) }
-        val content = widgetView ?: getDefaultView()
+        val content =
+            if (launcherPrefs.get(LauncherPrefsExt.COMPACT_SEARCH_BAR)) {
+                LayoutInflater.from(context)
+                    .inflate(R.layout.search_container_hotseat_compact, this, false)
+                    .also { view ->
+                        view.findViewById<View>(R.id.compact_search_bar_inner)
+                            ?.setOnLongClickListener { onLongClick(it) }
+                    }
+            } else {
+                provider?.let { oseWidgetManager.createWidgetView(context) } ?: getDefaultView()
+            }
         content.setOnLongClickListener { onLongClick(it) }
         addView(
             content,
