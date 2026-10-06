@@ -68,9 +68,13 @@ object FolderPreviewLayout {
             )
         }
 
-        // For multi-span folders (capacity >= 3, e.g. 2x1/1x2 with 3 slots, or 2x2 with 4 slots):
-        // There are ALWAYS (capacity - 1) direct big icon slots.
-        // The last slot is ALWAYS the overview tile (up to 4 preview icons).
+        if (items.size <= capacity) {
+            return ContentSelection(
+                directItems = items.toList(),
+                overviewItems = emptyList(),
+            )
+        }
+
         val directItemCount = capacity - 1
 
         val direct = items.take(directItemCount)
@@ -290,6 +294,10 @@ object FolderPreviewLayout {
                     folderColumnCount,
                 )
             return Snapshot(snapshotBounds, overviewBounds, overviewPlacements, emptyList())
+        }
+
+        if (selection.overviewItems.isEmpty()) {
+            return Snapshot(snapshotBounds, null, directPlacements, emptyList())
         }
 
         val overviewIndex = grid.capacity - 1
