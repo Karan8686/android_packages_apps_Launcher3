@@ -87,7 +87,6 @@ constructor(
         prefs.addListener(
             prefListener,
             LauncherPrefsExt.ICON_PACK_PACKAGE,
-            LauncherPrefsExt.THEMED_ICONS_ENABLED,
             LauncherPrefsExt.THEMED_ICON_PACK,
             LauncherPrefsExt.THEMED_ICON_SCALE,
             LauncherPrefsExt.THEMED_ICON_BACKGROUND_COLOR,
@@ -102,7 +101,6 @@ constructor(
             prefs.removeListener(
                 prefListener,
                 LauncherPrefsExt.ICON_PACK_PACKAGE,
-                LauncherPrefsExt.THEMED_ICONS_ENABLED,
                 LauncherPrefsExt.THEMED_ICON_PACK,
                 LauncherPrefsExt.THEMED_ICON_SCALE,
                 LauncherPrefsExt.THEMED_ICON_BACKGROUND_COLOR,
@@ -149,7 +147,7 @@ constructor(
     }
 
     private fun dispatchAllIconsChanged() {
-        userCache.userProfiles.forEach { _changes.dispatchValue(PackageUserKey("", it)) }
+        _changes.dispatchValue(PackageUserKey("", myUserHandle()))
     }
 
     companion object {
@@ -157,7 +155,6 @@ constructor(
         @JvmField val INSTANCE = DaggerSingletonObject(LauncherAppComponent::getIconChangeTracker)
         private val ICON_PREF_KEYS = setOf(
             LauncherPrefsExt.ICON_PACK_PACKAGE.sharedPrefKey,
-            LauncherPrefsExt.THEMED_ICONS_ENABLED.sharedPrefKey,
             LauncherPrefsExt.THEMED_ICON_PACK.sharedPrefKey,
             LauncherPrefsExt.THEMED_ICON_SCALE.sharedPrefKey,
             LauncherPrefsExt.THEMED_ICON_BACKGROUND_COLOR.sharedPrefKey,

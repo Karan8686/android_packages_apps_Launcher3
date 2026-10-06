@@ -33,13 +33,17 @@ import com.android.launcher3.LauncherSettings;
 import com.android.launcher3.icons.IconCache;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
+import com.android.launcher3.pm.UserCache;
 import com.android.launcher3.popup.PopupPopulator;
+import com.android.launcher3.shortcuts.ShortcutRequest.QueryResult;
 import com.android.launcher3.util.ApplicationInfoWrapper;
 import com.android.launcher3.util.ComponentKey;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Helper to discover, filter, and cache deep shortcuts for multi-span Super Icons (Quick Functions).
@@ -69,7 +73,7 @@ public class SuperIconShortcutHelper {
     }
 
     /**
-     * Asynchronously loads up to 2 published shortcuts for the specified app item.
+     * Asynchronously loads up to 3 published shortcuts for the specified app item.
      */
     public static void loadShortcutsForApp(
             @NonNull Context context,
@@ -84,7 +88,7 @@ public class SuperIconShortcutHelper {
         // 1. Check memory cache first
         synchronized (sCache) {
             List<WorkspaceItemInfo> cached = sCache.get(key);
-            if (cached != null) {
+            if (cached != null && !cached.isEmpty()) {
                 callback.onShortcutsLoaded(cached);
                 return;
             }
@@ -93,7 +97,7 @@ public class SuperIconShortcutHelper {
         final ComponentName activity = appInfo.getTargetComponent();
         final UserHandle user = appInfo.user;
         final String targetPackage = appInfo.getTargetPackage();
-        if (targetPackage == null) {
+        if (targetPackage == null || user == null) {
             callback.onShortcutsLoaded(Collections.emptyList());
             return;
         }
@@ -102,28 +106,43 @@ public class SuperIconShortcutHelper {
 
         // 2. Query in background thread
         MODEL_EXECUTOR.getHandler().postAtFrontOfQueue(() -> {
+            if (!UserCache.INSTANCE.get(appContext).isUserUnlocked(user)) {
+                MAIN_EXECUTOR.execute(() -> callback.onShortcutsLoaded(Collections.emptyList()));
+                return;
+            }
+
             List<ShortcutInfo> shortcuts = Collections.emptyList();
+            boolean querySucceeded = false;
             try {
                 if (activity != null) {
-                    shortcuts = new ShortcutRequest(appContext, user)
+                    QueryResult actResult = new ShortcutRequest(appContext, user)
                             .withContainer(activity)
                             .query(ShortcutRequest.PUBLISHED);
-                }
-                if (shortcuts.size() < 2) {
-                    List<ShortcutInfo> pkgShortcuts = new ShortcutRequest(appContext, user)
-                            .forPackage(targetPackage)
-                            .query(ShortcutRequest.PUBLISHED);
-                    if (pkgShortcuts != null && !pkgShortcuts.isEmpty()) {
-                        shortcuts = pkgShortcuts;
+                    if (actResult.wasSuccess()) {
+                        querySucceeded = true;
+                        shortcuts = actResult;
                     }
                 }
-                shortcuts = PopupPopulator.sortAndFilterShortcuts(shortcuts);
+                if (shortcuts.size() < 2) {
+                    QueryResult pkgResult = new ShortcutRequest(appContext, user)
+                            .forPackage(targetPackage)
+                            .query(ShortcutRequest.PUBLISHED);
+                    if (pkgResult.wasSuccess()) {
+                        querySucceeded = true;
+                        if (!pkgResult.isEmpty()) {
+                            shortcuts = pkgResult;
+                        }
+                    }
+                }
+                if (querySucceeded && !shortcuts.isEmpty()) {
+                    shortcuts = PopupPopulator.sortAndFilterShortcuts(shortcuts);
+                }
             } catch (Exception e) {
                 // Ignore query exceptions
             }
 
             final List<WorkspaceItemInfo> resultList = new ArrayList<>();
-            if (shortcuts != null && !shortcuts.isEmpty()) {
+            if (querySucceeded && shortcuts != null && !shortcuts.isEmpty()) {
                 ApplicationInfoWrapper infoWrapper =
                         new ApplicationInfoWrapper(appContext, targetPackage, user);
                 IconCache cache = LauncherAppState.getInstance(appContext).getIconCache();
@@ -138,8 +157,10 @@ public class SuperIconShortcutHelper {
                 }
             }
 
-            synchronized (sCache) {
-                sCache.put(key, resultList);
+            if (!resultList.isEmpty()) {
+                synchronized (sCache) {
+                    sCache.put(key, resultList);
+                }
             }
 
             MAIN_EXECUTOR.execute(() -> callback.onShortcutsLoaded(resultList));
@@ -147,7 +168,44 @@ public class SuperIconShortcutHelper {
     }
 
     /**
-     * Clears cached shortcuts (e.g. on package update).
+     * Clears cached shortcuts for a specific package and user.
+     */
+    public static void clearCacheForPackage(@Nullable String packageName, @Nullable UserHandle user) {
+        if (packageName == null) {
+            return;
+        }
+        synchronized (sCache) {
+            Map<ComponentKey, List<WorkspaceItemInfo>> snapshot = sCache.snapshot();
+            for (ComponentKey key : snapshot.keySet()) {
+                if (packageName.equals(key.componentName.getPackageName())
+                        && (user == null || user.equals(key.user))) {
+                    sCache.remove(key);
+                }
+            }
+        }
+    }
+
+    /**
+     * Clears cached shortcuts for a set of packages and user.
+     */
+    public static void clearCacheForPackages(
+            @Nullable Set<String> packageNames, @Nullable UserHandle user) {
+        if (packageNames == null || packageNames.isEmpty()) {
+            return;
+        }
+        synchronized (sCache) {
+            Map<ComponentKey, List<WorkspaceItemInfo>> snapshot = sCache.snapshot();
+            for (ComponentKey key : snapshot.keySet()) {
+                if (packageNames.contains(key.componentName.getPackageName())
+                        && (user == null || user.equals(key.user))) {
+                    sCache.remove(key);
+                }
+            }
+        }
+    }
+
+    /**
+     * Clears all cached shortcuts.
      */
     public static void clearCache() {
         synchronized (sCache) {

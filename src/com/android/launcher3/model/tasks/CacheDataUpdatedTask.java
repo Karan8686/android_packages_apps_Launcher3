@@ -71,7 +71,10 @@ public class CacheDataUpdatedTask implements ModelUpdateTask {
                         if (si.itemType == LauncherSettings.Favorites.ITEM_TYPE_APPLICATION
                                 && isValidShortcut(si) && cn != null
                                 && mPackages.contains(cn.getPackageName())) {
-                            iconCache.getTitleAndIcon(si, si.getMatchingLookupFlag());
+                            iconCache.getTitleAndIcon(
+                                    si,
+                                    LauncherSettings.Favorites.DESKTOP_ICON_FLAG.withUseLowRes(
+                                            si.getMatchingLookupFlag().useLowRes()));
                             return true;
                         }
                         return false;

@@ -307,7 +307,7 @@ class WorkspaceItemProcessor(
             // or something which is ready to be used)
             c.markRestored()
         }
-        val useLowResIcon = !c.isOnWorkspaceOrHotseat
+        val useLowResIcon = !c.isOnWorkspaceOrHotseat && c.rank >= 7
         val info: WorkspaceItemInfo?
         when {
             c.restoreFlag != 0 -> {
@@ -737,7 +737,7 @@ class WorkspaceItemProcessor(
                     info is WorkspaceItemInfo &&
                         info.matchingLookupFlag.isVisuallyLessThan(Favorites.DESKTOP_ICON_FLAG) &&
                         info.itemType == Favorites.ITEM_TYPE_APPLICATION &&
-                        verifiers.any { it.isItemInPreview(info.rank) }
+                        (info.rank < 7 || verifiers.any { it.isItemInPreview(info.rank) })
                 ) {
                     iconCache.getTitleAndIcon(info, Favorites.DESKTOP_ICON_FLAG)
                 }

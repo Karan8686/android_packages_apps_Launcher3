@@ -92,7 +92,7 @@ public class PackageUpdatedTask implements ModelUpdateTask {
     @Override
     public void execute(@NonNull ModelTaskController taskController, @NonNull BgDataModel dataModel,
             @NonNull AllAppsList appsList) {
-        SuperIconShortcutHelper.clearCache();
+        SuperIconShortcutHelper.clearCacheForPackages(mPackages, mUser);
         final Context context = taskController.getContext();
         final IconCache iconCache = taskController.getIconCache();
 
@@ -227,7 +227,9 @@ public class PackageUpdatedTask implements ModelUpdateTask {
                                     .isNonResizeableActivity(activities.get(0)));
                         }
                         iconCache.getTitleAndIcon(
-                                itemInfo, itemInfo.getMatchingLookupFlag());
+                                itemInfo,
+                                Favorites.DESKTOP_ICON_FLAG.withUseLowRes(
+                                        itemInfo.getMatchingLookupFlag().useLowRes()));
                         infoUpdated = true;
                     }
 

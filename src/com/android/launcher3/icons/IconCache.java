@@ -413,8 +413,12 @@ public class IconCache extends BaseIconCache {
         String componentNameQuery = TextUtils.join(
                 ",", Collections.nCopies(queryParams.length - 1, "?"));
 
+        String[] lookupColumns = toLookupColumns(lookupFlag);
+        String[] queryColumns = java.util.Arrays.copyOf(lookupColumns, lookupColumns.length + 1);
+        queryColumns[lookupColumns.length] = COLUMN_FRESHNESS_ID;
+
         return iconDb.query(
-                toLookupColumns(lookupFlag),
+                queryColumns,
                 COLUMN_COMPONENT
                         + " IN ( " + componentNameQuery + " )"
                         + " AND " + COLUMN_USER + " = ?",
@@ -478,6 +482,7 @@ public class IconCache extends BaseIconCache {
                 /* lookupFlag = */ sectionKey.second)) {
             // Database title and icon loading
             int componentNameColumnIndex = c.getColumnIndexOrThrow(COLUMN_COMPONENT);
+            int freshnessColumnIndex = c.getColumnIndex(COLUMN_FRESHNESS_ID);
             while (c.moveToNext()) {
                 ComponentName cn = ComponentName.unflattenFromString(
                         c.getString(componentNameColumnIndex));
@@ -486,10 +491,21 @@ public class IconCache extends BaseIconCache {
 
                 if (cn != null) {
                     if (duplicateIconRequests != null) {
+                        LauncherActivityInfo lai = duplicateIconRequests.get(0).launcherActivityInfo;
+                        if (!sectionKey.second.useLowRes()
+                                && freshnessColumnIndex >= 0
+                                && lai != null) {
+                            String dbFreshness = c.getString(freshnessColumnIndex);
+                            String expectedFreshness = LauncherActivityCachingLogic.INSTANCE
+                                    .getFreshnessIdentifier(lai, iconProvider);
+                            if (!Objects.equals(dbFreshness, expectedFreshness)) {
+                                continue;
+                            }
+                        }
                         CacheEntry entry = cacheLocked(
                                 cn,
                                 /* user = */ sectionKey.first,
-                                () -> duplicateIconRequests.get(0).launcherActivityInfo,
+                                () -> lai,
                                 LauncherActivityCachingLogic.INSTANCE,
                                 sectionKey.second,
                                 c);
@@ -524,33 +540,46 @@ public class IconCache extends BaseIconCache {
                 Log.i(TAG,
                         "Database bulk icon loading failed, using fallback bulk icon loading "
                                 + "for: " + cn);
-                CacheEntry entry = new CacheEntry();
                 LauncherActivityInfo lai = iconRequestInfo.launcherActivityInfo;
-
-                // Fill fields that are not updated below so they are not subsequently
-                // deleted.
-                entry.title = itemInfo.title;
-                if (icon != null) {
-                    entry.bitmap = icon;
-                }
-                entry.contentDescription = itemInfo.contentDescription;
-
-                if (loadFallbackIcon) {
-                    loadFallbackIcon(
+                CacheEntry entry;
+                if (!sectionKey.second.useLowRes() && lai != null && loadFallbackIcon) {
+                    addIconToDBAndMemCache(
                             lai,
-                            entry,
                             LauncherActivityCachingLogic.INSTANCE,
-                            DEFAULT_LOOKUP_FLAG.withUsePackageIcon(false),
-                            /* usePackageTitle= */ loadFallbackTitle,
+                            getSerialNumberForUser(sectionKey.first));
+                    entry = cacheLocked(
                             cn,
-                            sectionKey.first);
-                }
-                if (loadFallbackTitle && TextUtils.isEmpty(entry.title) && lai != null) {
-                    loadFallbackTitle(
-                            lai,
-                            entry,
+                            sectionKey.first,
+                            () -> lai,
                             LauncherActivityCachingLogic.INSTANCE,
-                            sectionKey.first);
+                            sectionKey.second);
+                } else {
+                    entry = new CacheEntry();
+                    // Fill fields that are not updated below so they are not subsequently
+                    // deleted.
+                    entry.title = itemInfo.title;
+                    if (icon != null) {
+                        entry.bitmap = icon;
+                    }
+                    entry.contentDescription = itemInfo.contentDescription;
+
+                    if (loadFallbackIcon) {
+                        loadFallbackIcon(
+                                lai,
+                                entry,
+                                LauncherActivityCachingLogic.INSTANCE,
+                                sectionKey.second.withUsePackageIcon(false),
+                                /* usePackageTitle= */ loadFallbackTitle,
+                                cn,
+                                sectionKey.first);
+                    }
+                    if (loadFallbackTitle && TextUtils.isEmpty(entry.title) && lai != null) {
+                        loadFallbackTitle(
+                                lai,
+                                entry,
+                                LauncherActivityCachingLogic.INSTANCE,
+                                sectionKey.first);
+                    }
                 }
 
                 for (IconRequestInfo<T> iconRequest : duplicateIconRequestsMap.get(cn)) {

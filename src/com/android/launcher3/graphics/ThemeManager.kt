@@ -131,15 +131,22 @@ constructor(
     }
 
     private fun verifyIconState() {
-        val newState = parseIconState(iconState)
-        if (newState == iconState) return
-        val hasThemedChanged = newState.toUniqueId() != iconState.toUniqueId()
+        val oldState = iconState
+        val newState = parseIconState(oldState)
+        if (newState == oldState) return
+        val hasThemedChanged = newState.toUniqueId() != oldState.toUniqueId()
+        val hasShapeChanged =
+            newState.iconMask != oldState.iconMask || iconShapeData.value === IconShape.EMPTY
         iconState = newState
         if (hasThemedChanged) {
+            com.android.axion.iconprovider.customicon.IconPackDrawableResolver.clearCache(null)
+            com.android.axion.iconprovider.ThemedIconPackLoader.clearCache()
             // trigger listeners only for theme change, not shape change
             listeners.forEach { it.onThemeChanged() }
         }
-        _iconShapeData.dispatchValue(iconShape.createIconShape(iconShapeData.value.pathSize))
+        if (hasShapeChanged) {
+            _iconShapeData.dispatchValue(iconShape.createIconShape(iconShapeData.value.pathSize))
+        }
     }
 
     fun addChangeListener(listener: ThemeChangeListener) = listeners.add(listener)

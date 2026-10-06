@@ -43,7 +43,7 @@ class ShortcutsChangedTask(
         dataModel: BgDataModel,
         apps: AllAppsList,
     ) {
-        SuperIconShortcutHelper.clearCache()
+        SuperIconShortcutHelper.clearCacheForPackage(packageName, user)
         val context = taskController.context
         val itemFilter: (WorkspaceItemInfo) -> Boolean = {
             it.itemType == ITEM_TYPE_DEEP_SHORTCUT && packageName == it.targetPackage
@@ -116,6 +116,16 @@ class ShortcutsChangedTask(
             // Update the deep shortcut map if the list of ids has changed for an activity.
             dataModel.updateDeepShortcutCounts(shortcuts) {
                 it.componentName.packageName == packageName && it.user == user
+            }
+            val updatedSuperIcons =
+                dataModel.updateAndCollectWorkspaceItemInfos(
+                    user,
+                    {
+                        packageName == it.targetPackage && (it.spanX > 1 || it.spanY > 1)
+                    },
+                )
+            if (updatedSuperIcons.isNotEmpty()) {
+                taskController.bindUpdatedWorkspaceItems(updatedSuperIcons)
             }
         }
     }

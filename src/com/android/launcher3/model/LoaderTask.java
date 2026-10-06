@@ -715,6 +715,8 @@ public class LoaderTask implements Runnable {
             List<IconRequestInfo<WorkspaceItemInfo>> workspaceRequestInfos,
             boolean isRestoreFromBackup
     ) {
+        CacheLookupFlag appLookupFlag = DEFAULT_LOOKUP_FLAG.withUseLowRes(false)
+                .withThemeIcon(com.android.launcher3.LauncherPrefsExt.ALLAPPS_THEMED_ICONS.get(mContext));
         if (Flags.restoreArchivedAppIconsFromDb() && isRestoreFromBackup) {
             Optional<IconRequestInfo<WorkspaceItemInfo>> workspaceIconRequest =
                     workspaceRequestInfos.stream()
@@ -731,14 +733,14 @@ public class LoaderTask implements Runnable {
                         activityInfo,
                         workspaceIconRequest.get().iconBlob,
                         workspaceIconRequest.get().isBlobFullBleed,
-                        DEFAULT_LOOKUP_FLAG.withUseLowRes(false)
+                        appLookupFlag
                 );
                 if (!iconRequestInfo.loadIconFromDbBlob(mContext)) {
                     Log.d(TAG, "AppInfo Icon failed to load from blob, using cache.");
                     mIconCache.getTitleAndIcon(
                             appInfo,
                             iconRequestInfo.launcherActivityInfo,
-                            DEFAULT_LOOKUP_FLAG
+                            appLookupFlag
                     );
                 }
                 return iconRequestInfo;
@@ -749,8 +751,7 @@ public class LoaderTask implements Runnable {
                         + ", isArchived: " + activityInfo.getApplicationInfo().isArchived);
             }
         }
-        return new IconRequestInfo<>(appInfo, activityInfo,
-                DEFAULT_LOOKUP_FLAG.withUseLowRes(false));
+        return new IconRequestInfo<>(appInfo, activityInfo, appLookupFlag);
     }
 
     private List<ShortcutInfo> loadDeepShortcuts() {

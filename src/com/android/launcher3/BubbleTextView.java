@@ -39,6 +39,7 @@ import static com.android.launcher3.icons.cache.CacheLookupFlag.DEFAULT_LOOKUP_F
 import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_INCREMENTAL_DOWNLOAD_ACTIVE;
 import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_INSTALL_SESSION_ACTIVE;
 import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_SHOW_DOWNLOAD_PROGRESS_MASK;
+import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 import static com.android.launcher3.util.Executors.MODEL_EXECUTOR;
 import static com.android.launcher3.util.MultiTranslateDelegate.INDEX_TASKBAR_APP_RUNNING_STATE_ANIM;
 
@@ -121,6 +122,7 @@ import com.android.launcher3.search.StringMatcherUtility;
 import com.android.launcher3.shortcuts.SuperIconShortcutHelper;
 import com.android.launcher3.touch.ItemClickHandler;
 import com.android.launcher3.util.CancellableTask;
+import com.android.launcher3.util.ComponentKey;
 import com.android.launcher3.util.IntArray;
 import com.android.launcher3.util.MultiTranslateDelegate;
 import com.android.launcher3.util.SafeCloseable;
@@ -130,9 +132,11 @@ import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.views.FloatingIconViewCompanion;
 
 import java.text.NumberFormat;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 /**
  * TextView that draws a bubble behind the text. We cannot use a LineBackgroundSpan
@@ -288,6 +292,7 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
             new java.util.WeakHashMap<>();
     private List<WorkspaceItemInfo> mSuperIconShortcuts;
     private boolean mIsLoadingShortcuts = false;
+    private ComponentKey mSuperIconComponentKey;
     private final RectF[] mSlotBounds = new RectF[]{new RectF(), new RectF(), new RectF(), new RectF()};
     private final float[] mSlotPressScales = new float[]{1.0f, 1.0f, 1.0f, 1.0f};
     private final ValueAnimator[] mSlotPressAnimators = new ValueAnimator[4];
@@ -435,6 +440,7 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         mIsLoadingSuperIcon = false;
         mSuperIconShortcuts = null;
         mIsLoadingShortcuts = false;
+        mSuperIconComponentKey = null;
         mActivePressedSlot = -1;
         mLastClickedSlot = -1;
         // Reset any shifty arrangements in case animation is disrupted.
@@ -607,20 +613,37 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         if (mIsShowingMinimalPopup) {
             iconDrawable.setAnimationEnabled(false);
         }
-        mSuperIconAdaptiveDrawable = null;
-        mSuperIconBadge = null;
-        mSuperIconFgHasOpaquePlate = null;
-        mIsLoadingSuperIcon = false;
+        ComponentKey newKey = info != null ? info.getComponentKey() : null;
+        boolean sameComponent = newKey != null && Objects.equals(mSuperIconComponentKey, newKey);
+        mSuperIconComponentKey = newKey;
+        boolean useTheme = isMonetThemeActive();
+        if (!sameComponent || mSuperIconLoadedWithTheme != useTheme) {
+            mSuperIconAdaptiveDrawable = null;
+            mSuperIconBadge = null;
+            mSuperIconFgHasOpaquePlate = null;
+            mIsLoadingSuperIcon = false;
+        }
         List<WorkspaceItemInfo> cachedShortcuts = SuperIconShortcutHelper.getCachedShortcuts(info);
-        mSuperIconShortcuts = (cachedShortcuts != null && !cachedShortcuts.isEmpty())
-                ? cachedShortcuts : null;
+        if (cachedShortcuts != null && !cachedShortcuts.isEmpty()) {
+            mSuperIconShortcuts = cachedShortcuts;
+        } else if (!sameComponent) {
+            mSuperIconShortcuts = null;
+        }
         mIsLoadingShortcuts = false;
         mActivePressedSlot = -1;
         mLastClickedSlot = -1;
         setIcon(iconDrawable);
         if (isMultiSpan()) {
-            loadSuperIconDrawableIfNecessary();
-            loadSuperIconShortcutsIfNecessary();
+            if (sameComponent && mSuperIconAdaptiveDrawable != null) {
+                refreshSuperIconDrawableInBackground();
+            } else {
+                loadSuperIconDrawableIfNecessary();
+            }
+            if (cachedShortcuts == null || cachedShortcuts.isEmpty()) {
+                refreshSuperIconShortcutsInBackground();
+            } else {
+                loadSuperIconShortcutsIfNecessary();
+            }
         }
     }
 
@@ -994,8 +1017,45 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        if (isMultiSpan() && mSuperIconAdaptiveDrawable == null && !mIsLoadingSuperIcon) {
-            loadSuperIconDrawableIfNecessary();
+        if (isMultiSpan()) {
+            if (mSuperIconAdaptiveDrawable == null && !mIsLoadingSuperIcon) {
+                loadSuperIconDrawableIfNecessary();
+            }
+            if ((mSuperIconShortcuts == null || mSuperIconShortcuts.isEmpty())
+                    && !mIsLoadingShortcuts) {
+                mSuperIconShortcuts = null;
+                loadSuperIconShortcutsIfNecessary();
+            }
+        }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasWindowFocus) {
+        super.onWindowFocusChanged(hasWindowFocus);
+        if (hasWindowFocus && isMultiSpan()) {
+            if (mSuperIconAdaptiveDrawable == null && !mIsLoadingSuperIcon) {
+                loadSuperIconDrawableIfNecessary();
+            }
+            if ((mSuperIconShortcuts == null || mSuperIconShortcuts.isEmpty())
+                    && !mIsLoadingShortcuts) {
+                mSuperIconShortcuts = null;
+                loadSuperIconShortcutsIfNecessary();
+            }
+        }
+    }
+
+    @Override
+    protected void onWindowVisibilityChanged(int visibility) {
+        super.onWindowVisibilityChanged(visibility);
+        if (visibility == VISIBLE && isMultiSpan()) {
+            if (mSuperIconAdaptiveDrawable == null && !mIsLoadingSuperIcon) {
+                loadSuperIconDrawableIfNecessary();
+            }
+            if ((mSuperIconShortcuts == null || mSuperIconShortcuts.isEmpty())
+                    && !mIsLoadingShortcuts) {
+                mSuperIconShortcuts = null;
+                loadSuperIconShortcutsIfNecessary();
+            }
         }
     }
 
@@ -1003,8 +1063,13 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
         checkForEllipsis();
-        if (isMultiSpan() && mSuperIconAdaptiveDrawable == null && !mIsLoadingSuperIcon) {
-            loadSuperIconDrawableIfNecessary();
+        if (isMultiSpan()) {
+            if (mSuperIconAdaptiveDrawable == null && !mIsLoadingSuperIcon) {
+                loadSuperIconDrawableIfNecessary();
+            }
+            if (mSuperIconShortcuts == null && !mIsLoadingShortcuts) {
+                loadSuperIconShortcutsIfNecessary();
+            }
         }
     }
 
@@ -1123,7 +1188,9 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
     }
 
     public int getSpanX() {
-        if (getLayoutParams() instanceof CellLayoutLayoutParams lp) {
+        if (getLayoutParams() instanceof CellLayoutLayoutParams lp
+                && (getParent() instanceof ShortcutAndWidgetContainer
+                        || lp.cellHSpan > 1 || lp.cellVSpan > 1)) {
             return lp.cellHSpan;
         }
         if (getTag() instanceof ItemInfo itemInfo) {
@@ -1133,7 +1200,9 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
     }
 
     public int getSpanY() {
-        if (getLayoutParams() instanceof CellLayoutLayoutParams lp) {
+        if (getLayoutParams() instanceof CellLayoutLayoutParams lp
+                && (getParent() instanceof ShortcutAndWidgetContainer
+                        || lp.cellHSpan > 1 || lp.cellVSpan > 1)) {
             return lp.cellVSpan;
         }
         if (getTag() instanceof ItemInfo itemInfo) {
@@ -1271,6 +1340,13 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         if (mSuperIconAdaptiveDrawable != null || mIsLoadingSuperIcon) {
             return;
         }
+        refreshSuperIconDrawableInBackground();
+    }
+
+    private void refreshSuperIconDrawableInBackground() {
+        if (!isMultiSpan() || mIsLoadingSuperIcon) {
+            return;
+        }
         final ItemInfo itemInfo = (getTag() instanceof ItemInfo) ? (ItemInfo) getTag() : null;
         if (itemInfo == null) {
             return;
@@ -1291,7 +1367,7 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
                 Log.e(TAG, "Error loading full drawable for super icon", e);
             }
             final Pair<AdaptiveIconDrawable, Drawable> result = fullDrawable;
-            post(() -> {
+            MAIN_EXECUTOR.execute(() -> {
                 mIsLoadingSuperIcon = false;
                 if (result != null && result.first != null) {
                     mSuperIconAdaptiveDrawable = result.first;
@@ -1308,12 +1384,19 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         if (!isMultiSpan()) {
             return;
         }
+        if (mSuperIconShortcuts != null || mIsLoadingShortcuts) {
+            return;
+        }
+        refreshSuperIconShortcutsInBackground();
+    }
+
+    private void refreshSuperIconShortcutsInBackground() {
+        if (!isMultiSpan() || mIsLoadingShortcuts) {
+            return;
+        }
         int sx = getSpanX();
         int sy = getSpanY();
         if (!((sx == 2 && sy == 1) || (sx == 1 && sy == 2) || (sx == 2 && sy == 2))) {
-            return;
-        }
-        if (mSuperIconShortcuts != null || mIsLoadingShortcuts) {
             return;
         }
         final ItemInfo itemInfo = (getTag() instanceof ItemInfo) ? (ItemInfo) getTag() : null;
@@ -1321,10 +1404,9 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
             return;
         }
         List<WorkspaceItemInfo> cached = SuperIconShortcutHelper.getCachedShortcuts(itemInfo);
-        if (cached != null) {
-            if (!cached.isEmpty()) {
-                mSuperIconShortcuts = cached;
-            }
+        if (cached != null && !cached.isEmpty()) {
+            mSuperIconShortcuts = cached;
+            invalidate();
             return;
         }
         mIsLoadingShortcuts = true;
@@ -1333,6 +1415,8 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
             if (shortcuts != null && !shortcuts.isEmpty()) {
                 mSuperIconShortcuts = shortcuts;
                 invalidate();
+            } else if (mSuperIconShortcuts == null) {
+                mSuperIconShortcuts = Collections.emptyList();
             }
         });
     }

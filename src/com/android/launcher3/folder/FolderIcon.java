@@ -263,17 +263,23 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
     int getCurrentSpanX() {
         if (!usesWorkspacePreviewLayout()) return 1;
 
-        return getLayoutParams() instanceof CellLayoutLayoutParams lp
-                ? lp.cellHSpan
-                : mInfo.spanX;
+        if (getLayoutParams() instanceof CellLayoutLayoutParams lp
+                && (getParent() instanceof com.android.launcher3.ShortcutAndWidgetContainer
+                        || lp.cellHSpan > 1 || lp.cellVSpan > 1)) {
+            return lp.cellHSpan;
+        }
+        return mInfo != null ? mInfo.spanX : 1;
     }
 
     int getCurrentSpanY() {
         if (!usesWorkspacePreviewLayout()) return 1;
 
-        return getLayoutParams() instanceof CellLayoutLayoutParams lp
-                ? lp.cellVSpan
-                : mInfo.spanY;
+        if (getLayoutParams() instanceof CellLayoutLayoutParams lp
+                && (getParent() instanceof com.android.launcher3.ShortcutAndWidgetContainer
+                        || lp.cellHSpan > 1 || lp.cellVSpan > 1)) {
+            return lp.cellVSpan;
+        }
+        return mInfo != null ? mInfo.spanY : 1;
     }
 
     public boolean usesWorkspacePreviewLayout() {

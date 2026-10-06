@@ -32,6 +32,7 @@ import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.shortcuts.ShortcutKey;
 import com.android.launcher3.shortcuts.ShortcutRequest;
 import com.android.launcher3.shortcuts.ShortcutRequest.QueryResult;
+import com.android.launcher3.shortcuts.SuperIconShortcutHelper;
 import com.android.launcher3.util.ItemInfoMatcher;
 
 import java.util.Collections;
@@ -57,6 +58,7 @@ public class UserLockStateChangedTask implements ModelUpdateTask {
     public void execute(@NonNull ModelTaskController taskController, @NonNull BgDataModel dataModel,
             @NonNull AllAppsList apps) {
         Context context = taskController.getContext();
+        SuperIconShortcutHelper.clearCache();
 
         HashMap<ShortcutKey, ShortcutInfo> pinnedShortcuts = new HashMap<>();
         if (mIsUserUnlocked) {
@@ -96,6 +98,8 @@ public class UserLockStateChangedTask implements ModelUpdateTask {
                     } else {
                         si.runtimeStatusFlags |= FLAG_DISABLED_LOCKED_USER;
                     }
+                    return true;
+                } else if (mIsUserUnlocked && (si.spanX > 1 || si.spanY > 1)) {
                     return true;
                 }
                 return false;
