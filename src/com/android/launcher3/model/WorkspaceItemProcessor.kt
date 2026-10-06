@@ -391,6 +391,8 @@ class WorkspaceItemProcessor(
             info.rank = c.rank
             info.spanX = c.spanX.coerceAtLeast(1)
             info.spanY = c.spanY.coerceAtLeast(1)
+            info.minSpanX = info.spanX
+            info.minSpanY = info.spanY
             info.runtimeStatusFlags = info.runtimeStatusFlags or disabledState
             if (isSafeMode && !appInfoWrapper.isSystem()) {
                 info.runtimeStatusFlags =

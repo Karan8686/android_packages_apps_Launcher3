@@ -98,6 +98,7 @@ import com.android.launcher3.popup.PoppableType;
 import com.android.launcher3.popup.PopupController;
 import com.android.launcher3.touch.ItemClickHandler;
 import com.android.launcher3.util.MultiTranslateDelegate;
+import com.android.launcher3.util.SafeCloseable;
 import com.android.launcher3.util.Themes;
 import com.android.launcher3.util.Thunk;
 import com.android.launcher3.views.ActivityContext;
@@ -226,15 +227,19 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
     }
 
     public boolean shouldShowFolderName() {
-        return mRequestedTextVisible
-                && mFolderName != null
-                && AxFolderExt.shouldShowFolderLabel(getContext(), mInfo)
+        return shouldReserveFolderLabelSpace()
                 && mInfo != null
                 && !TextUtils.isEmpty(mInfo.title);
     }
 
+    private boolean shouldReserveFolderLabelSpace() {
+        return mRequestedTextVisible
+                && mFolderName != null
+                && AxFolderExt.shouldShowFolderLabel(getContext(), mInfo);
+    }
+
     public int getFolderLabelHeight() {
-        if (shouldShowFolderName() && mFolderName != null) {
+        if (shouldReserveFolderLabelSpace() && mFolderName != null) {
             Paint.FontMetrics fm = mFolderName.getPaint().getFontMetrics();
             int textHeight = (int) Math.ceil(fm.bottom - fm.top);
             int measuredHeight = mFolderName.getMeasuredHeight();
@@ -456,7 +461,9 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
     }
 
     private boolean willAcceptItem(ItemInfo item) {
-        return (willAcceptItemType(item.itemType) && item != mInfo && !mFolder.isOpen());
+        return (willAcceptItemType(item.itemType)
+                && item.spanX <= 1 && item.spanY <= 1
+                && item != mInfo && !mFolder.isOpen());
     }
 
     public boolean acceptDrop(ItemInfo dragInfo) {
@@ -1230,7 +1237,7 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         boolean isAllAppsFolder = AxFolderExt.isAllAppsFolder(mInfo);
-        boolean shouldShowLabel = shouldShowFolderName();
+        boolean shouldShowLabel = shouldReserveFolderLabelSpace();
         boolean shouldCenterIcon = !isAllAppsFolder
                 && mActivity.getDeviceProfile().getWorkspaceIconProfile().getIconCenterVertically();
 
@@ -1587,6 +1594,23 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
     @Override
     public int getViewType() {
         return DRAGGABLE_ICON;
+    }
+
+    @NonNull
+    @Override
+    public SafeCloseable prepareDrawDragView() {
+        resetScale();
+        setForceHideDot(true);
+        boolean wasFolderNameVisible = mFolderName != null && mFolderName.getVisibility() == VISIBLE;
+        if (wasFolderNameVisible) {
+            mFolderName.setVisibility(INVISIBLE);
+        }
+        return () -> {
+            setForceHideDot(false);
+            if (wasFolderNameVisible) {
+                mFolderName.setVisibility(VISIBLE);
+            }
+        };
     }
 
     @Override

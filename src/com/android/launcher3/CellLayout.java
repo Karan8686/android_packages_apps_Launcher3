@@ -564,6 +564,10 @@ public class CellLayout extends ViewGroup {
      * Returns whether dropping an icon on the given View can create (or add to) a folder.
      */
     private boolean canCreateFolder(View child) {
+        if (child != null && child.getLayoutParams() instanceof CellLayoutLayoutParams lp
+                && (lp.cellHSpan > 1 || lp.cellVSpan > 1)) {
+            return false;
+        }
         return child instanceof DraggableView
                 && ((DraggableView) child).getViewType() == DRAGGABLE_ICON;
     }

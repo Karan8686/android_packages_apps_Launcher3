@@ -319,6 +319,18 @@ private constructor(
     }
 
     override fun getTargetObjectLocation(outPos: Rect) {
+        if (originalIcon.isMultiSpan) {
+            popupContainer.getDescendantRectRelativeToSelf(originalView, outPos)
+            val bgBounds = originalIcon.multiSpanBackgroundBounds
+            val scale = originalView.scaleX
+            val viewLeft = outPos.left
+            val viewTop = outPos.top
+            outPos.left = viewLeft + Math.round(bgBounds.left * scale)
+            outPos.top = viewTop + Math.round(bgBounds.top * scale)
+            outPos.right = viewLeft + Math.round(bgBounds.right * scale)
+            outPos.bottom = viewTop + Math.round(bgBounds.bottom * scale)
+            return
+        }
         super.getTargetObjectLocation(outPos)
         outPos.bottom = outPos.top + (originalIcon.icon?.bounds?.height() ?: originalView.height)
     }

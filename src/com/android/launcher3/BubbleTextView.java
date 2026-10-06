@@ -293,6 +293,7 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
     private final ValueAnimator[] mSlotPressAnimators = new ValueAnimator[4];
     private int mActivePressedSlot = -1;
     private int mLastClickedSlot = -1;
+    private boolean mIsDrawingDragView = false;
 
     public BubbleTextView(Context context) {
         this(context, null, 0);
@@ -1192,6 +1193,10 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
     private static final Interpolator OOS_PRESS_INTERPOLATOR =
             new PathInterpolator(0.4f, 0.0f, 0.2f, 1.0f);
 
+    public float getSuperIconPressScale() {
+        return hasQuickFunctions() ? 1.0f : mSuperIconPressScale;
+    }
+
     @Override
     public void setPressed(boolean pressed) {
         super.setPressed(pressed);
@@ -1872,6 +1877,9 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
     }
 
     protected void drawMultiSpanLabel(Canvas canvas) {
+        if (mIsDrawingDragView) {
+            return;
+        }
         if (hasQuickFunctions() && getSpanX() == 2 && getSpanY() == 2) {
             return;
         }
@@ -2639,13 +2647,25 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
     public SafeCloseable prepareDrawDragView() {
         resetIconScale();
         setForceHideDot(true);
+        mIsDrawingDragView = true;
         return () -> {
+            mIsDrawingDragView = false;
         };
     }
 
     private void resetIconScale() {
         if (mIcon != null) {
             mIcon.resetScale();
+        }
+        if (mSuperIconPressAnimator != null) {
+            mSuperIconPressAnimator.cancel();
+        }
+        mSuperIconPressScale = 1.0f;
+        for (int i = 0; i < mSlotPressScales.length; i++) {
+            if (mSlotPressAnimators[i] != null) {
+                mSlotPressAnimators[i].cancel();
+            }
+            mSlotPressScales[i] = 1.0f;
         }
     }
 
