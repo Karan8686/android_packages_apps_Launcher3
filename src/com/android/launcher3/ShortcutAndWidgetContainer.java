@@ -171,12 +171,14 @@ public class ShortcutAndWidgetContainer extends ViewGroup implements FolderIcon.
             if (child instanceof FolderIcon folderIcon && folderIcon.usesWorkspacePreviewLayout()) {
                 child.setPadding(0, 0, 0, 0);
             } else {
+                // Center the icon/folder
                 int cHeight = getCellContentHeight();
                 int singleCellHeight = mCellHeight > 0 ? mCellHeight : lp.height;
+                float yPaddingFactor = 0.5f;
                 int cellPaddingY =
                         dp.getWorkspaceIconProfile().getCellYPaddingPx() >= 0 && mContainerType == WORKSPACE
                                 ? dp.getWorkspaceIconProfile().getCellYPaddingPx()
-                                : (int) Math.max(0, ((singleCellHeight - cHeight) / 2f));
+                                : Math.round(Math.max(0, singleCellHeight - cHeight) * yPaddingFactor);
 
                 boolean noPaddingX =
                         (dp.getWorkspaceIconProfile().getCellLayoutBorderSpacePx().x > 0

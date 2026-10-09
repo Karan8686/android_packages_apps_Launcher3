@@ -197,7 +197,7 @@ object FolderPreviewLayout {
             if (index == 0) {
                 val spanWidth = 2f * grid.itemSize + grid.columnGap
                 val spanHeight = 2f * grid.itemSize + grid.rowGap
-                val featuredSize = minOf(spanWidth, spanHeight)
+                val featuredSize = minOf(spanWidth, spanHeight) * 0.94f
                 val blockLeft = if (isRtl) grid.startX + stepX else grid.startX
                 val blockTop = grid.startY
                 val left = blockLeft + (spanWidth - featuredSize) / 2f

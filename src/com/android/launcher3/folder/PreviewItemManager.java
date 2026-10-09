@@ -337,23 +337,30 @@ public class PreviewItemManager {
             int rows = isThreeByThreeBase ? 3 : 2;
             float W = backgroundBounds.width();
             float H = backgroundBounds.height();
+            float boxSize = Math.min(W, H);
 
-            int numColumns = deviceProfile.inv != null ? deviceProfile.inv.numColumns : 4;
-            float padding = resources.getDimension(numColumns >= 5
-                    ? R.dimen.big_folder_preview_padding_5col
-                    : R.dimen.big_folder_preview_padding_4col);
-            float subCellW = (W - 2f * padding) / columns;
-            float subCellH = (H - 2f * padding) / rows;
-            float itemScale = isThreeByThreeBase ? 0.82f : 0.80f;
-            float itemSize = Math.min(subCellW, subCellH) * itemScale;
+            final float outerPadding;
+            final float gap;
+            final float itemSize;
 
-            float subGapX = (subCellW - itemSize) / 2f;
-            float subGapY = (subCellH - itemSize) / 2f;
-            float columnGap = 2f * subGapX;
-            float rowGap = 2f * subGapY;
+            if (isThreeByThreeBase) {
+                // 3x3 grid (3 items across, 2 inner gaps, 2 outer paddings)
+                outerPadding = boxSize * 0.10f;
+                gap = boxSize * 0.065f;
+                itemSize = (boxSize - 2f * outerPadding - 2f * gap) / 3f;
+            } else {
+                // 2x2 grid (2 items across, 1 inner gap, 2 outer paddings)
+                outerPadding = boxSize * 0.115f;
+                gap = boxSize * 0.085f;
+                float rawItemSize = (boxSize - 2f * outerPadding - gap) / 2f;
+                itemSize = Math.min(rawItemSize, deviceProfile.folderIconSizePx * 0.88f);
+            }
 
-            float startX = backgroundBounds.left + padding + subGapX;
-            float startY = backgroundBounds.top + padding + subGapY;
+            float totalGridWidth = columns * itemSize + (columns - 1) * gap;
+            float totalGridHeight = rows * itemSize + (rows - 1) * gap;
+
+            float startX = backgroundBounds.left + (W - totalGridWidth) / 2f;
+            float startY = backgroundBounds.top + (H - totalGridHeight) / 2f;
 
             return new FolderPreviewLayout.Grid(
                     columns,
@@ -361,8 +368,8 @@ public class PreviewItemManager {
                     startX,
                     startY,
                     itemSize,
-                    columnGap,
-                    rowGap,
+                    gap,
+                    gap,
                     featuredFirstItem
             );
         }

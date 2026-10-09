@@ -466,7 +466,10 @@ object WorkspaceProfileNonResponsiveFactory {
             cellHeightPx = cellHeightPx,
             cellLayoutBorderSpacePx = cellLayoutBorderSpacePx,
             desiredWorkspaceHorizontalMarginPx = desiredWorkspaceHorizontalMarginPx,
-            cellYPaddingPx = max(0, (cellHeightPx - cellContentHeight)) / 2,
+            cellYPaddingPx =
+                Math.round(
+                    max(0, cellHeightPx - cellContentHeight) * 0.5f
+                ),
             maxIconTextLineCount = 1,
             iconCenterVertically = isVerticalLayout,
             gridVisualizationPaddingX =

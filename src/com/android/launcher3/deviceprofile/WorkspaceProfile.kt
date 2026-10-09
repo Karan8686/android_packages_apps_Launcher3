@@ -158,12 +158,12 @@ data class WorkspaceProfile(
                 deviceProperties.isTwoPanels -> cellLayoutBorderSpacePx.x / 2
                 else -> res.getDimensionPixelSize(R.dimen.cell_layout_padding)
             }
-        val (workspacePadding, cellLayoutPaddingPx) =
+        var (workspacePadding, cellLayoutPaddingPx) =
             insetPadding(
                 noInsetWorkspacePadding,
                 Rect(cellLayoutPadding, cellLayoutPadding, cellLayoutPadding, cellLayoutPadding),
             )
-        val cellSize =
+        var cellSize =
             calculateCellSize(
                 cellLayoutBorderSpacePx = this.cellLayoutBorderSpacePx,
                 panelCount = this.panelCount,
@@ -177,10 +177,51 @@ data class WorkspaceProfile(
                         workspacePadding.top + workspacePadding.bottom,
                     ),
             )
+
+        // Portrait phone workspace padding:
+        // Ensure clean, natural status bar clearance without dumping artificial dead space at top/bottom.
+        if (!isVerticalLayout && !deviceProperties.isTablet && !deviceProperties.isTwoPanels) {
+            val minTopMarginPx = Math.round(deviceProperties.heightPx * 0.045f)
+            val targetTopPadding =
+                max(workspacePadding.top, max(0, minTopMarginPx - insets.top))
+            workspacePadding =
+                Rect(
+                    workspacePadding.left,
+                    targetTopPadding,
+                    workspacePadding.right,
+                    workspacePadding.bottom,
+                )
+            cellSize =
+                calculateCellSize(
+                    cellLayoutBorderSpacePx = this.cellLayoutBorderSpacePx,
+                    panelCount = this.panelCount,
+                    deviceProperties = deviceProperties,
+                    numColumns = inv.numColumns,
+                    numRows = inv.numRows,
+                    cellLayoutPadding = cellLayoutPaddingPx,
+                    totalWorkspacePadding =
+                        Point(
+                            workspacePadding.left + workspacePadding.right,
+                            workspacePadding.top + workspacePadding.bottom,
+                        ),
+                )
+        }
+
+        val finalContentHeight =
+            iconSizePx +
+                iconDrawablePaddingPx +
+                com.android.launcher3.Utilities.calculateTextHeight(iconTextSizePx.toFloat())
+        val yPaddingFactor = 0.5f
+        val updatedCellYPaddingPx =
+            Math.round(max(0, cellSize.y - finalContentHeight) * yPaddingFactor)
+
         return copy(
             workspacePadding = workspacePadding,
             cellLayoutPaddingPx = cellLayoutPaddingPx,
             cellSize = cellSize,
+            cellWidthPx = if (cellSize.x > 0) cellSize.x else cellWidthPx,
+            cellHeightPx = if (cellSize.y > 0) cellSize.y else cellHeightPx,
+            cellYPaddingPx = updatedCellYPaddingPx,
         )
     }
 
