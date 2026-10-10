@@ -105,13 +105,6 @@
     <attr name="widgetPickerExpandButtonTextColor" format="color"/>
     <attr name="widgetCellTitleColor" format="color" />
     <attr name="widgetCellSubtitleColor" format="color" />
-    <attr name="qsbFillColor" format="color" />
-    <attr name="qsbFillColorThemed" format="color" />
-    <attr name="qsbOuterColor" format="color" />
-    <attr name="qsbIconTintPrimary" format="color" />
-    <attr name="qsbIconTintQuaternary" format="color" />
-    <attr name="qsbIconTintSecondary" format="color" />
-    <attr name="qsbIconTintTertiary" format="color" />
 
     <!-- BubbleTextView specific attributes. -->
     <declare-styleable name="BubbleTextView">

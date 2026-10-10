@@ -106,37 +106,6 @@
     <string name="dock_search_bar_disabled">None</string>
     <string name="dock_search_provider_settings_title">Provider settings</string>
     <string name="dock_search_provider_settings_summary">Configure the selected dock search widget</string>
-    <string name="compact_search_bar_title">Compact search bar</string>
-    <string name="compact_search_bar_summary">Show a compact search bar above the dock icons</string>
-    <string name="compact_search_bar_action_title">Compact search action</string>
-    <string name="compact_search_bar_action_summary">Action when tapping the right button on the compact search bar</string>
-    <string name="compact_search_bar_action_google_search">Google Search</string>
-    <string name="compact_search_bar_action_lens">Google Lens</string>
-    <string name="compact_search_bar_action_mic">Voice search</string>
-    <string name="compact_search_bar_action_gemini">Gemini</string>
-    <string name="label_search">Search</string>
-    <string name="label_gemini_search">AI mode</string>
-    <string name="dock_search_lead_text">Search</string>
-    <string name="dock_music_search_title">Music search</string>
-    <string name="dock_music_search_summary">Start music search on pressing mic icon</string>
-    <string name="dock_theme_title">Themed search icons</string>
-    <string name="dock_theme_summary">Use themed icons in the compact search bar</string>
-    <string name="search_radius_size_title">Search radius</string>
-    <string name="hotseat_qsb_opacity_title">Search bar opacity</string>
-    <string name="hotseat_qsb_stroke_width_title">Search bar stroke width</string>
-    <string name="home_settings_dp_value">%1$d dp</string>
-    <string-array name="compact_search_bar_action_entries">
-        <item>@string/compact_search_bar_action_google_search</item>
-        <item>@string/compact_search_bar_action_lens</item>
-        <item>@string/compact_search_bar_action_mic</item>
-        <item>@string/compact_search_bar_action_gemini</item>
-    </string-array>
-    <string-array name="compact_search_bar_action_values" translatable="false">
-        <item>google_search</item>
-        <item>lens</item>
-        <item>mic</item>
-        <item>gemini</item>
-    </string-array>
 
     <!-- Edit workspace -->
     <string name="settings_lock_layout_title">Lock layout</string>

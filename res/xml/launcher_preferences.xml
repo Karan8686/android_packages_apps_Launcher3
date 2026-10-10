@@ -286,23 +286,6 @@
         launcher:isPreferenceVisible="false">
 
         <com.android.axion.preference.AxSwitchPreference
-            android:defaultValue="false"
-            android:key="pref_compact_search_bar"
-            android:persistent="true"
-            android:summary="@string/compact_search_bar_summary"
-            android:title="@string/compact_search_bar_title" />
-
-        <ListPreference
-            android:defaultValue="google_search"
-            android:dependency="pref_compact_search_bar"
-            android:entries="@array/compact_search_bar_action_entries"
-            android:entryValues="@array/compact_search_bar_action_values"
-            android:key="pref_compact_search_bar_action"
-            android:persistent="true"
-            android:summary="%s"
-            android:title="@string/compact_search_bar_action_title" />
-
-        <com.android.axion.preference.AxSwitchPreference
             android:defaultValue="true"
             android:key="pref_enable_minus_one"
             android:summary="@string/pref_show_google_now_summary"

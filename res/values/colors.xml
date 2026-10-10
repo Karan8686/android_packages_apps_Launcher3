@@ -72,11 +72,6 @@
     <color name="folder_preview_light">#7FCFFF</color>
     <color name="folder_preview_dark">#1E1F20</color>
 
-    <color name="qsb_primary">#7FCFFF</color>
-    <color name="qsb_secondary">#0B57D0</color>
-    <color name="qsb_tertiary">#A8C7FA</color>
-    <color name="qsb_quaternary">#0842A0</color>
-
     <color name="pagination_indicator_dot_color_light">#0B57D0</color>
     <color name="pagination_indicator_dot_color_dark">#A8C7FA</color>
 

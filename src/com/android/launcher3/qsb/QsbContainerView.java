@@ -146,9 +146,7 @@ public class QsbContainerView extends FrameLayout {
             mQsbWidgetHost = createHost();
             mOrientation = getContext().getResources().getConfiguration().orientation;
             LauncherPrefs.get(getContext()).addListener(mQsbPreferenceListener,
-                    LauncherPrefsExt.HOTSEAT_SEARCH_BAR,
-                    LauncherPrefsExt.HOTSEAT_SEARCH_PROVIDER,
-                    LauncherPrefsExt.COMPACT_SEARCH_BAR);
+                    LauncherPrefsExt.HOTSEAT_SEARCH_BAR, LauncherPrefsExt.HOTSEAT_SEARCH_PROVIDER);
         }
 
         protected QsbWidgetHost createHost() {
@@ -172,10 +170,6 @@ public class QsbContainerView extends FrameLayout {
         }
 
         private View createQsb(ViewGroup container) {
-            if (LauncherPrefsExt.COMPACT_SEARCH_BAR.get(getContext())) {
-                return LayoutInflater.from(getContext())
-                        .inflate(R.layout.search_container_hotseat_compact, container, false);
-            }
             mWidgetInfo = getSearchWidgetProvider();
             if (mWidgetInfo == null) {
                 // There is no search provider, just show the default widget.
@@ -257,9 +251,7 @@ public class QsbContainerView extends FrameLayout {
             Context context = getContext();
             if (context != null) {
                 LauncherPrefs.get(context).removeListener(mQsbPreferenceListener,
-                        LauncherPrefsExt.HOTSEAT_SEARCH_BAR,
-                        LauncherPrefsExt.HOTSEAT_SEARCH_PROVIDER,
-                        LauncherPrefsExt.COMPACT_SEARCH_BAR);
+                        LauncherPrefsExt.HOTSEAT_SEARCH_BAR, LauncherPrefsExt.HOTSEAT_SEARCH_PROVIDER);
             }
             mQsbWidgetHost.stopListening();
             super.onDestroy();

@@ -202,7 +202,6 @@ internal fun rememberHomePreviewState(): HomePreviewState {
     val showLabels = rememberLauncherPreference(LauncherPrefsExt.SHOW_DESKTOP_LABELS)
     val showSearchBar = rememberLauncherPreference(LauncherPrefsExt.HOTSEAT_SEARCH_BAR)
     val searchProvider = rememberLauncherPreference(LauncherPrefsExt.HOTSEAT_SEARCH_PROVIDER)
-    val compactSearchBar = rememberLauncherPreference(LauncherPrefsExt.COMPACT_SEARCH_BAR)
     val previewColumns = if (!isTablet) {
         columns.value
     } else if (isLandscape) {
@@ -243,9 +242,8 @@ internal fun rememberHomePreviewState(): HomePreviewState {
         iconPercent = iconScale.value,
         labelPercent = labelScale.value,
         showLabels = showLabels.value,
-        showSearchBar = compactSearchBar.value ||
-            (showSearchBar.value &&
-                searchProvider.value != OseWidgetManager.SEARCH_PROVIDER_NONE),
+        showSearchBar = showSearchBar.value &&
+            searchProvider.value != OseWidgetManager.SEARCH_PROVIDER_NONE,
     )
 }
 
