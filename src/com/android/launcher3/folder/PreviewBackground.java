@@ -215,13 +215,25 @@ public class PreviewBackground extends DelegatedCellDrawing {
                 }
                 topPadding = cellPaddingY;
             }
-            backgroundHeight = (spanY - 1) * (cellHeight + borderSpace.y) + previewSize;
-            backgroundTop = topPadding + grid.folderIconOffsetYPx;
-
             backgroundWidth = (spanX - 1) * (cellWidth + borderSpace.x) + previewSize;
             backgroundLeft = availableSpaceX > 0
                     ? (availableSpaceX - backgroundWidth) / 2
                     : (cellWidth - previewSize) / 2;
+
+            if (spanX == spanY) {
+                // Symmetrical square multi-span folders and Super Icons (e.g. 2x2, 3x3):
+                // Always keep width and height equal to form a clean, symmetrical square card matching OxygenOS
+                backgroundHeight = backgroundWidth;
+            } else if (spanX == 2 && spanY == 1) {
+                // 2x1 horizontal capsule
+                backgroundHeight = previewSize;
+            } else if (spanX == 1 && spanY == 2) {
+                // 1x2 vertical capsule
+                backgroundHeight = (spanY - 1) * (cellHeight + borderSpace.y) + previewSize;
+            } else {
+                backgroundHeight = (spanY - 1) * (cellHeight + borderSpace.y) + previewSize;
+            }
+            backgroundTop = topPadding + grid.folderIconOffsetYPx;
         }
 
         outBounds.set(
