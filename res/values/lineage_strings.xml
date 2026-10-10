@@ -114,6 +114,8 @@
     <string name="compact_search_bar_action_lens">Google Lens</string>
     <string name="compact_search_bar_action_mic">Voice search</string>
     <string name="compact_search_bar_action_gemini">Gemini</string>
+    <string name="label_search">Search</string>
+    <string name="label_gemini_search">AI mode</string>
     <string name="dock_search_lead_text">Search</string>
     <string name="dock_music_search_title">Music search</string>
     <string name="dock_music_search_summary">Start music search on pressing mic icon</string>

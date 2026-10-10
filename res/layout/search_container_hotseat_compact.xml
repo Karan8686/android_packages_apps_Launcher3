@@ -30,7 +30,7 @@
             android:src="@drawable/ic_gemini_color" />
 
         <TextView
-            android:id="@+id/compact_search_bar_text"
+            android:id="@+id/compact_search_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/compact_search_bar_icon_text_gap"
@@ -40,6 +40,16 @@
             android:text="@string/label_search"
             android:textColor="?android:attr/textColorPrimary"
             android:textSize="@dimen/compact_search_bar_text_size" />
+
+        <ImageButton
+            android:id="@+id/compact_action_button"
+            android:layout_width="@dimen/compact_search_bar_icon_size"
+            android:layout_height="@dimen/compact_search_bar_icon_size"
+            android:layout_marginEnd="@dimen/compact_search_bar_icon_end_gap"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/compact_search_bar_action_title"
+            android:scaleType="fitCenter"
+            android:visibility="gone" />
 
     </LinearLayout>
 

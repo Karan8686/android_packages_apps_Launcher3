@@ -655,6 +655,9 @@
     <dimen name="compact_search_bar_padding">8dp</dimen>
     <dimen name="compact_search_bar_icon_size">30dp</dimen>
     <dimen name="compact_search_bar_icon_padding">6dp</dimen>
+    <dimen name="compact_search_bar_icon_end_gap">10dp</dimen>
+    <dimen name="compact_search_bar_icon_text_gap">4dp</dimen>
+    <dimen name="compact_search_bar_text_end_gap">20dp</dimen>
     <dimen name="compact_search_bar_text_size">15sp</dimen>
     <dimen name="compact_search_bar_text_margin">6dp</dimen>
     <dimen name="compact_search_bar_margin_top">-8dp</dimen>
