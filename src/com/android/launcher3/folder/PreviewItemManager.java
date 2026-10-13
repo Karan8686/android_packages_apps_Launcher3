@@ -345,7 +345,7 @@ public class PreviewItemManager {
 
             if (isThreeByThreeBase) {
                 // 3x3 grid (3 items across, 2 inner gaps, 2 outer paddings)
-                outerPadding = boxSize * 0.10f;
+                outerPadding = boxSize * 0.09f;
                 gap = boxSize * 0.065f;
                 itemSize = (boxSize - 2f * outerPadding - 2f * gap) / 3f;
             } else {

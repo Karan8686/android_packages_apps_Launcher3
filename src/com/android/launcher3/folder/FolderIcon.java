@@ -1261,9 +1261,14 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
                 availableHeight = (availableHeight - (getCurrentSpanY() - 1) * rowGap)
                         / getCurrentSpanY();
             }
-            int cellYPadding = mActivity.getDeviceProfile().getWorkspaceIconProfile().getCellYPaddingPx();
+            DeviceProfile dp = mActivity.getDeviceProfile();
+            boolean isLargeScreenOrVertical = (dp.getDeviceProperties() != null
+                    && (dp.getDeviceProperties().isTablet() || dp.getDeviceProperties().isTwoPanels()))
+                    || dp.isVerticalBarLayout();
+            float yFactor = isLargeScreenOrVertical ? 0.5f : 0.6667f;
+            int cellYPadding = dp.getWorkspaceIconProfile().getCellYPaddingPx();
             if (cellYPadding < 0 || !shouldShowLabel) {
-                cellYPadding = Math.max(0, (availableHeight - cellHeightPx) / 2);
+                cellYPadding = Math.round(Math.max(0, availableHeight - cellHeightPx) * yFactor);
             }
             setPadding(getPaddingLeft(), cellYPadding, getPaddingRight(), getPaddingBottom());
         }
@@ -1327,8 +1332,14 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
                         cellPaddingY = dp.getWorkspaceIconProfile().getCellYPaddingPx();
                     }
                     if (cellPaddingY < 0) {
-                        int cHeight = dp.getWorkspaceIconProfile().getCellHeightPx();
-                        cellPaddingY = Math.max(0, (cellHeight - cHeight) / 2);
+                        int iconTextHeight = Utilities.calculateTextHeight(
+                                dp.getWorkspaceIconProfile().getIconTextSizePx());
+                        int contentHeight = iconSize + iconPadding + iconTextHeight;
+                        boolean isLargeScreenOrVertical = (dp.getDeviceProperties() != null
+                                && (dp.getDeviceProperties().isTablet() || dp.getDeviceProperties().isTwoPanels()))
+                                || dp.isVerticalBarLayout();
+                        float yFactor = isLargeScreenOrVertical ? 0.5f : 0.6667f;
+                        cellPaddingY = Math.round(Math.max(0, cellHeight - contentHeight) * yFactor);
                     }
 
                     int standardIconLabelTop = targetRow * (cellHeight + borderSpace.y)
@@ -1352,12 +1363,23 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
                     }
 
                     int gap;
+                    int cellPaddingY = getPaddingTop();
+                    int iconSize;
                     if (isAllApps && mActivity != null) {
                         gap = mActivity.getDeviceProfile().getAllAppsProfile().getIconDrawablePaddingPx();
+                        if (cellPaddingY <= 0) {
+                            cellPaddingY = mActivity.getDeviceProfile().getAllAppsProfile().getCellYPaddingPx();
+                        }
+                        iconSize = mActivity.getDeviceProfile().getAllAppsProfile().getIconSizePx();
                     } else if (mActivity != null) {
                         gap = mActivity.getDeviceProfile().getWorkspaceIconProfile().getIconDrawablePaddingPx();
+                        if (cellPaddingY <= 0) {
+                            cellPaddingY = mActivity.getDeviceProfile().getWorkspaceIconProfile().getCellYPaddingPx();
+                        }
+                        iconSize = mActivity.getDeviceProfile().getWorkspaceIconProfile().getIconSizePx();
                     } else {
                         gap = 0;
+                        iconSize = bgBounds.height();
                     }
 
                     int textWidth = getWidth();
@@ -1365,7 +1387,10 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
                         textWidth = mFolderName.getMeasuredWidth();
                     }
                     int textLeft = 0;
-                    int textTop = bgBounds.bottom + gap;
+                    int standardIconLabelTop = (cellPaddingY > 0)
+                            ? (cellPaddingY + iconSize + gap)
+                            : (bgBounds.bottom + gap);
+                    int textTop = Math.max(standardIconLabelTop, bgBounds.bottom + Math.max(1, gap / 2));
 
                     mFolderName.setPadding(0, 0, 0, 0);
                     mFolderName.layout(textLeft, textTop, textLeft + textWidth, textTop + textHeight);

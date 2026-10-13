@@ -211,7 +211,8 @@ data class WorkspaceProfile(
             iconSizePx +
                 iconDrawablePaddingPx +
                 com.android.launcher3.Utilities.calculateTextHeight(iconTextSizePx.toFloat())
-        val yPaddingFactor = 0.5f
+        val yPaddingFactor =
+            if (deviceProperties.isTablet || deviceProperties.isTwoPanels || isVerticalLayout) 0.5f else 0.6667f
         val updatedCellYPaddingPx =
             Math.round(max(0, cellSize.y - finalContentHeight) * yPaddingFactor)
 
@@ -460,11 +461,13 @@ data class WorkspaceProfile(
             iconTextSizePx = cellContentDimensions.iconTextSizePx
             maxIconTextLineCount = cellContentDimensions.maxLineCount
 
+            val yPaddingFactor =
+                if (deviceProperties.isTablet || deviceProperties.isTwoPanels || isVerticalLayout) 0.5f else 0.6667f
             val cellYPaddingPx =
                 if (isVerticalLayout) {
-                    max(0, cellSize.y - getIconSizeWithOverlap(iconSizePx)) / 2
+                    Math.round(max(0, cellSize.y - getIconSizeWithOverlap(iconSizePx)) * 0.5f)
                 } else {
-                    max(0, (cellHeightPx - cellContentHeight)) / 2
+                    Math.round(max(0, cellHeightPx - cellContentHeight) * yPaddingFactor)
                 }
 
             val edgeMarginPx = res.getDimensionPixelSize(R.dimen.dynamic_grid_edge_margin)

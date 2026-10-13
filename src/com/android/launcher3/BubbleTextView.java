@@ -2234,7 +2234,11 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
                     int cHeight = shouldShowLabel()
                             ? mDeviceProfile.getWorkspaceIconProfile().getCellHeightPx()
                             : mIconSize;
-                    cellYPadding = Math.max(0, (availableHeight - cHeight) / 2);
+                    boolean isLargeScreenOrVertical = (mDeviceProfile.getDeviceProperties() != null
+                            && (mDeviceProfile.getDeviceProperties().isTablet() || mDeviceProfile.getDeviceProperties().isTwoPanels()))
+                            || mDeviceProfile.isVerticalBarLayout();
+                    float yFactor = isLargeScreenOrVertical ? 0.5f : 0.6667f;
+                    cellYPadding = Math.round(Math.max(0, availableHeight - cHeight) * yFactor);
                 }
             } else {
                 cellYPadding = Math.max(0, (availableHeight - cellHeightPx) / 2);

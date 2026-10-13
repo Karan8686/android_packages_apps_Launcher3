@@ -179,11 +179,20 @@ public class PreviewBackground extends DelegatedCellDrawing {
         int backgroundLeft;
         int backgroundTop;
 
+        boolean isLargeScreenOrVertical = (grid.getDeviceProperties() != null
+                && (grid.getDeviceProperties().isTablet() || grid.getDeviceProperties().isTwoPanels()))
+                || grid.isVerticalBarLayout();
+        float yFactor = isLargeScreenOrVertical ? 0.5f : 0.6667f;
+
         if (topPadding <= 0) {
             int cellPaddingY = grid.getWorkspaceIconProfile().getCellYPaddingPx();
             if (cellPaddingY < 0) {
-                int cHeight = grid.getWorkspaceIconProfile().getCellHeightPx();
-                cellPaddingY = Math.max(0, (cellHeight - cHeight) / 2);
+                int iconTextHeight = Utilities.calculateTextHeight(
+                        grid.getWorkspaceIconProfile().getIconTextSizePx());
+                int contentHeight = iconSize
+                        + grid.getWorkspaceIconProfile().getIconDrawablePaddingPx()
+                        + iconTextHeight;
+                cellPaddingY = Math.round(Math.max(0, cellHeight - contentHeight) * yFactor);
             }
             topPadding = cellPaddingY;
         }
@@ -202,19 +211,6 @@ public class PreviewBackground extends DelegatedCellDrawing {
             // Bottom aligns with row (spanY - 1) icon circle bottom
             // Left aligns with col 0 icon circle left ((cellWidth - previewSize) / 2)
             // Right aligns with col (spanX - 1) icon circle right
-            if (topPadding <= 0) {
-                int cellPaddingY = grid.getWorkspaceIconProfile().getCellYPaddingPx();
-                if (cellPaddingY <= 0) {
-                    int iconTextHeight = Utilities.calculateTextHeight(
-                            grid.getWorkspaceIconProfile().getIconTextSizePx());
-                    int contentHeight = iconSize
-                            + grid.getWorkspaceIconProfile().getIconDrawablePaddingPx()
-                            + iconTextHeight;
-                    float yFactor = 0.5f;
-                    cellPaddingY = Math.round(Math.max(0, cellHeight - contentHeight) * yFactor);
-                }
-                topPadding = cellPaddingY;
-            }
             backgroundHeight = (spanY - 1) * (cellHeight + borderSpace.y) + previewSize;
             backgroundTop = topPadding + grid.folderIconOffsetYPx;
 

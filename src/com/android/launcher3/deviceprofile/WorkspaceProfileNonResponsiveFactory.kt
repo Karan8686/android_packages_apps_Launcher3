@@ -468,7 +468,8 @@ object WorkspaceProfileNonResponsiveFactory {
             desiredWorkspaceHorizontalMarginPx = desiredWorkspaceHorizontalMarginPx,
             cellYPaddingPx =
                 Math.round(
-                    max(0, cellHeightPx - cellContentHeight) * 0.5f
+                    max(0, cellHeightPx - cellContentHeight) *
+                        (if (deviceProperties.isTablet || deviceProperties.isTwoPanels || isVerticalLayout) 0.5f else 0.6667f)
                 ),
             maxIconTextLineCount = 1,
             iconCenterVertically = isVerticalLayout,
