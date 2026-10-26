@@ -159,15 +159,9 @@ constructor(
     }
 
     fun initializeDisplayEvents(model: LauncherModel) {
-        fun refreshAndReloadLauncher() {
-            iconPool.clear()
-            iconCache.updateIconParams(idp.fillResIconDpi, idp.iconBitmapSize)
-            model.forceReload()
-        }
-
         // IDP changes
         val idpChangeListener = OnIDPChangeListener { modelChanged ->
-            if (modelChanged) refreshAndReloadLauncher()
+            if (modelChanged) refreshAndReloadLauncher(model)
         }
         idp.addOnChangeListener(idpChangeListener)
         lifeCycle.addCloseable { idp.removeOnChangeListener(idpChangeListener) }
@@ -178,7 +172,7 @@ constructor(
         )
 
         // Theme changes
-        val themeChangeListener = ThemeChangeListener { refreshAndReloadLauncher() }
+        val themeChangeListener = ThemeChangeListener { refreshAndReloadLauncher(model) }
         themeManager.addChangeListener(themeChangeListener)
         lifeCycle.addCloseable { themeManager.removeChangeListener(themeChangeListener) }
 
@@ -192,7 +186,7 @@ constructor(
     @WorkerThread
     private fun onAppIconChanged(model: LauncherModel, event: PackageUserKey) {
         if (event.mPackageName.isNullOrEmpty()) {
-            refreshAndReloadLauncher()
+            refreshAndReloadLauncher(model)
             return
         }
         // Update the icon for the calendar package
@@ -210,6 +204,12 @@ constructor(
                     )
                 }
             }
+    }
+
+    private fun refreshAndReloadLauncher(model: LauncherModel) {
+        iconPool.clear()
+        iconCache.updateIconParams(idp.fillResIconDpi, idp.iconBitmapSize)
+        model.forceReload()
     }
 
     companion object {
