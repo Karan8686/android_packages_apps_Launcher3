@@ -332,7 +332,7 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
         };
         mDotParams = new DotRenderer.DrawParams();
         mDotParams.setDotColor(Themes.getAttrColor(context, R.attr.notificationDotColor));
-        mDotParams.shapeInfo = ThemeManager.INSTANCE.get(context).getIconState().getIconShapeInfo();
+        mDotParams.shapeInfo = ThemeManager.INSTANCE.get(context).getIconState().getFolderShapeInfo();
     }
 
     public static <T extends Context & ActivityContext> FolderIcon inflateFolderAndIcon(int resId,
@@ -765,6 +765,7 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
 
         PreviewItemLaunchSource(Context context) {
             super(context);
+            setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
             setWillNotDraw(true);
             setClickable(false);
             setFocusable(false);
@@ -786,12 +787,26 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
 
             FrameLayout.LayoutParams lp =
                     (FrameLayout.LayoutParams) getLayoutParams();
-            lp.width = width;
-            lp.height = height;
-            lp.leftMargin = left - FolderIcon.this.getPaddingLeft();
-            lp.topMargin = top - FolderIcon.this.getPaddingTop();
+            if (lp == null) {
+                lp = new FrameLayout.LayoutParams(width, height, Gravity.LEFT | Gravity.TOP);
+            } else {
+                lp.width = width;
+                lp.height = height;
+                lp.gravity = Gravity.LEFT | Gravity.TOP;
+            }
+            int leftMargin = left - FolderIcon.this.getPaddingLeft();
+            int topMargin = top - FolderIcon.this.getPaddingTop();
+            lp.leftMargin = leftMargin;
+            lp.topMargin = topMargin;
+            lp.rightMargin = 0;
+            lp.bottomMargin = 0;
+            lp.setMarginStart(leftMargin);
+            lp.setMarginEnd(0);
             setLayoutParams(lp);
 
+            measure(
+                    MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
+                    MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY));
             layout(left, top, left + width, top + height);
             setVisibility(VISIBLE);
         }
@@ -853,7 +868,7 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
             mPreviewItemLaunchSource =
                     new PreviewItemLaunchSource(getContext());
             addView(mPreviewItemLaunchSource,
-                    new FrameLayout.LayoutParams(0, 0));
+                    new FrameLayout.LayoutParams(0, 0, Gravity.LEFT | Gravity.TOP));
         }
 
         mPreviewItemLaunchSource.prepare(placement);
@@ -902,7 +917,7 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
             mPreviewItemLaunchSource =
                     new PreviewItemLaunchSource(getContext());
             addView(mPreviewItemLaunchSource,
-                    new FrameLayout.LayoutParams(0, 0));
+                    new FrameLayout.LayoutParams(0, 0, Gravity.LEFT | Gravity.TOP));
         }
 
         mPreviewItemLaunchSource.prepareForAppClose(
@@ -1221,17 +1236,14 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
     public void drawDot(Canvas canvas) {
         if (!mForceHideDot && ((mDotInfo != null && mDotInfo.hasDot()) || mDotScale > 0)) {
             Rect iconBounds = mDotParams.iconBounds;
-            // FolderIcon draws the icon to be top-aligned (with padding) & horizontally-centered
-            int iconSize = mActivity.getDeviceProfile().getWorkspaceIconProfile().getIconSizePx();
-            iconBounds.left = (getWidth() - iconSize) / 2;
-            iconBounds.right = iconBounds.left + iconSize;
-            iconBounds.top = getPaddingTop();
-            iconBounds.bottom = iconBounds.top + iconSize;
-
-            float iconScale = (float) mBackground.previewSize / iconSize;
-            Utilities.scaleRectAboutCenter(iconBounds, iconScale);
+            mBackground.getBounds(iconBounds);
             if (isMultiSpanFolder()) {
-                mBackground.getBounds(iconBounds);
+                int iconSize = mActivity.getDeviceProfile().getWorkspaceIconProfile().getIconSizePx();
+                iconBounds.left = iconBounds.right - iconSize;
+                iconBounds.bottom = iconBounds.top + iconSize;
+            }
+            if (mBackground.mScale != 1f) {
+                Utilities.scaleRectAboutCenter(iconBounds, mBackground.mScale);
             }
 
             // If we are animating to the accepting state, animate the dot out.
@@ -1281,6 +1293,16 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         super.onLayout(changed, left, top, right, bottom);
+        if (mPreviewItemLaunchSource != null
+                && mPreviewItemLaunchSource.getVisibility() == VISIBLE) {
+            FrameLayout.LayoutParams lp =
+                    (FrameLayout.LayoutParams) mPreviewItemLaunchSource.getLayoutParams();
+            int childLeft = getPaddingLeft() + lp.leftMargin;
+            int childTop = getPaddingTop() + lp.topMargin;
+            mPreviewItemLaunchSource.layout(childLeft, childTop,
+                    childLeft + mPreviewItemLaunchSource.getMeasuredWidth(),
+                    childTop + mPreviewItemLaunchSource.getMeasuredHeight());
+        }
         layoutFolderName();
     }
 
