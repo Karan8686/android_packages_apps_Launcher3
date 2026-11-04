@@ -2,7 +2,7 @@
 <com.android.launcher3.qsb.CompactSearchBar
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="@dimen/qsb_widget_height"
+    android:layout_height="@dimen/compact_search_bar_height"
     android:layout_alignParentTop="true"
     android:layout_centerHorizontal="true"
     android:layout_gravity="top|center_horizontal"

@@ -290,11 +290,12 @@ public class Hotseat extends CellLayout implements Insettable {
                 lp.width = grid.hotseatBarSizePx + insets.right;
             }
         } else {
-            boolean showQsb = grid.isHotseatQsbEnabled() || isCompactSearchBarEnabled();
+            boolean isCompact = isCompactSearchBarEnabled();
+            boolean showQsb = grid.isHotseatQsbEnabled() || isCompact;
             mQsb.setVisibility(showQsb ? View.VISIBLE : View.GONE);
             lp.gravity = Gravity.BOTTOM;
             lp.width = ViewGroup.LayoutParams.MATCH_PARENT;
-            if (showQsb) {
+            if (showQsb && !isCompact) {
                 extraQsbTopInset = Math.max(0,
                         (grid.getQsbOffsetY() + grid.getHotseatQsbHeight())
                                 - grid.hotseatBarSizePx);
@@ -304,10 +305,19 @@ public class Hotseat extends CellLayout implements Insettable {
 
         Rect padding = grid.getHotseatLayoutPadding(getContext());
         if (isCompactSearchBarEnabled() && !grid.isVerticalBarLayout()) {
-            int compactSearchSpace = grid.getHotseatProfile().getQsbHeight()
-                    + grid.hotseatQsbSpace;
-            lp.height += compactSearchSpace;
-            padding.top += compactSearchSpace;
+            int compactBarHeight = getResources().getDimensionPixelSize(
+                    R.dimen.compact_search_bar_height);
+            int compactBarTopMargin = getResources().getDimensionPixelSize(
+                    R.dimen.compact_search_bar_top_margin);
+            int compactBarBottomGap = getResources().getDimensionPixelSize(
+                    R.dimen.compact_search_bar_bottom_gap);
+
+            int normalBottomPadding = Math.max(0, grid.hotseatBarBottomSpacePx - (Math.abs(
+                    grid.hotseatCellHeightPx - grid.getWorkspaceIconProfile().getIconSizePx()) / 2));
+            padding.bottom = normalBottomPadding;
+            padding.top = compactBarTopMargin + compactBarHeight + compactBarBottomGap;
+            lp.height = Math.max(grid.hotseatBarSizePx,
+                    padding.top + grid.hotseatCellHeightPx + padding.bottom);
         }
         setPadding(padding.left, padding.top + extraQsbTopInset, padding.right, padding.bottom);
         setLayoutParams(lp);
@@ -371,8 +381,8 @@ public class Hotseat extends CellLayout implements Insettable {
                 ? MeasureSpec.getSize(widthMeasureSpec)
                 : (dp.isHotseatQsbEnabled() ? dp.hotseatQsbWidth : 0);
         int qsbHeight = isCompactSearchBarEnabled()
-                ? dp.getHotseatProfile().getQsbHeight()
-                : dp.getHotseatQsbHeight();
+                ? getResources().getDimensionPixelSize(R.dimen.compact_search_bar_height)
+                : (dp.isHotseatQsbEnabled() ? dp.getHotseatProfile().getQsbHeight() : dp.getHotseatQsbHeight());
         mQsb.measure(makeMeasureSpec(qsbWidth, MeasureSpec.EXACTLY),
                 makeMeasureSpec(qsbHeight, MeasureSpec.EXACTLY));
     }
@@ -401,8 +411,10 @@ public class Hotseat extends CellLayout implements Insettable {
         int top;
         int bottom;
         if (isCompactSearchBarEnabled() && !dp.isQsbInline) {
-            top = 0;
-            bottom = top + dp.getHotseatProfile().getQsbHeight();
+            int compactBarTopMargin = getResources().getDimensionPixelSize(
+                    R.dimen.compact_search_bar_top_margin);
+            top = compactBarTopMargin;
+            bottom = top + qsbMeasuredHeight;
         } else {
             bottom = b - t - dp.getQsbOffsetY();
             top = bottom - qsbMeasuredHeight;
