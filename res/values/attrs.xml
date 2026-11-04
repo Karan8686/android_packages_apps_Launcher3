@@ -18,6 +18,8 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Attributes used for launcher theme -->
+    <attr name="qsbFillColor" format="color" />
+    <attr name="qsbFillColorThemed" format="color" />
     <attr name="allAppsScrimColor" format="color" />
     <attr name="allappsHeaderProtectionColor" format="color" />
     <attr name="allAppsNavBarScrimColor" format="color" />

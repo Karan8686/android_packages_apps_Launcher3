@@ -62,11 +62,13 @@ public class Hotseat extends CellLayout implements Insettable {
     public static final int ALPHA_CHANNEL_PREVIEW_RENDERER = 1;
     public static final int ALPHA_CHANNEL_TASKBAR_STASH = 2;
     public static final int ALPHA_CHANNEL_ASSISTANT_VISIBILITY = 3;
-    public static final int ALPHA_CHANNEL_CHANNELS_COUNT = 4;
+    public static final int ALPHA_CHANNEL_STATE_VISIBILITY = 4;
+    public static final int ALPHA_CHANNEL_CHANNELS_COUNT = 5;
 
     @Retention(RetentionPolicy.RUNTIME)
     @IntDef({ALPHA_CHANNEL_TASKBAR_ALIGNMENT, ALPHA_CHANNEL_PREVIEW_RENDERER,
-            ALPHA_CHANNEL_TASKBAR_STASH, ALPHA_CHANNEL_ASSISTANT_VISIBILITY})
+            ALPHA_CHANNEL_TASKBAR_STASH, ALPHA_CHANNEL_ASSISTANT_VISIBILITY,
+            ALPHA_CHANNEL_STATE_VISIBILITY})
     public @interface HotseatQsbAlphaId {
     }
 
@@ -106,7 +108,7 @@ public class Hotseat extends CellLayout implements Insettable {
 
     public Hotseat(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-        mQsb = LayoutInflater.from(context).inflate(R.layout.qsb_container_hotseat, this, false);
+        mQsb = createQsbView(context);
 
         addView(mQsb);
         mIconsAlphaChannels = new MultiValueAlpha(getShortcutsAndWidgets(),
@@ -120,6 +122,19 @@ public class Hotseat extends CellLayout implements Insettable {
                 VIEW_TRANSLATE_X, ICONS_TRANSLATION_X_CHANNELS_COUNT, Float::sum);
         mQsbAlphaChannels = new MultiValueAlpha(mQsb, ALPHA_CHANNEL_CHANNELS_COUNT);
         mQsbAlphaChannels.setUpdateVisibility(true);
+    }
+
+    private View createQsbView(Context context) {
+        if (isCompactSearchBarEnabled()) {
+            return LayoutInflater.from(context).inflate(
+                    R.layout.search_container_hotseat_compact, this, false);
+        }
+        return LayoutInflater.from(context).inflate(
+                R.layout.qsb_container_hotseat, this, false);
+    }
+
+    public boolean isCompactSearchBarEnabled() {
+        return LauncherPrefs.get(getContext()).get(LauncherPrefsExt.COMPACT_SEARCH_BAR);
     }
 
     /** Provides translation X for hotseat icons for the channel. */
@@ -275,7 +290,7 @@ public class Hotseat extends CellLayout implements Insettable {
                 lp.width = grid.hotseatBarSizePx + insets.right;
             }
         } else {
-            boolean showQsb = grid.isHotseatQsbEnabled();
+            boolean showQsb = grid.isHotseatQsbEnabled() || isCompactSearchBarEnabled();
             mQsb.setVisibility(showQsb ? View.VISIBLE : View.GONE);
             lp.gravity = Gravity.BOTTOM;
             lp.width = ViewGroup.LayoutParams.MATCH_PARENT;
@@ -288,6 +303,12 @@ public class Hotseat extends CellLayout implements Insettable {
         }
 
         Rect padding = grid.getHotseatLayoutPadding(getContext());
+        if (isCompactSearchBarEnabled() && !grid.isVerticalBarLayout()) {
+            int compactSearchSpace = grid.getHotseatProfile().getQsbHeight()
+                    + grid.hotseatQsbSpace;
+            lp.height += compactSearchSpace;
+            padding.top += compactSearchSpace;
+        }
         setPadding(padding.left, padding.top + extraQsbTopInset, padding.right, padding.bottom);
         setLayoutParams(lp);
         InsettableFrameLayout.dispatchInsets(this, insets);
@@ -346,9 +367,14 @@ public class Hotseat extends CellLayout implements Insettable {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
         DeviceProfile dp = mActivity.getDeviceProfile();
-        int qsbWidth = dp.isHotseatQsbEnabled() ? dp.hotseatQsbWidth : 0;
+        int qsbWidth = isCompactSearchBarEnabled() && !dp.isQsbInline
+                ? MeasureSpec.getSize(widthMeasureSpec)
+                : (dp.isHotseatQsbEnabled() ? dp.hotseatQsbWidth : 0);
+        int qsbHeight = isCompactSearchBarEnabled()
+                ? dp.getHotseatProfile().getQsbHeight()
+                : dp.getHotseatQsbHeight();
         mQsb.measure(makeMeasureSpec(qsbWidth, MeasureSpec.EXACTLY),
-                makeMeasureSpec(dp.getHotseatQsbHeight(), MeasureSpec.EXACTLY));
+                makeMeasureSpec(qsbHeight, MeasureSpec.EXACTLY));
     }
 
     @Override
@@ -372,8 +398,15 @@ public class Hotseat extends CellLayout implements Insettable {
         }
         int right = left + qsbMeasuredWidth;
 
-        int bottom = b - t - dp.getQsbOffsetY();
-        int top = bottom - qsbMeasuredHeight;
+        int top;
+        int bottom;
+        if (isCompactSearchBarEnabled() && !dp.isQsbInline) {
+            top = 0;
+            bottom = top + dp.getHotseatProfile().getQsbHeight();
+        } else {
+            bottom = b - t - dp.getQsbOffsetY();
+            top = bottom - qsbMeasuredHeight;
+        }
         mQsb.layout(left, top, right, bottom);
     }
 

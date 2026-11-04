@@ -319,6 +319,10 @@ internal fun SearchScreen(activity: Activity) {
     val dockSearchProviderPreference = rememberLauncherPreference(
         LauncherPrefsExt.HOTSEAT_SEARCH_PROVIDER,
     )
+    val compactSearchPreference = rememberLauncherPreference(LauncherPrefsExt.COMPACT_SEARCH_BAR)
+    val compactSearchActionPreference = rememberLauncherPreference(
+        LauncherPrefsExt.COMPACT_SEARCH_BAR_ACTION,
+    )
     val oseWidgetManager = remember(context) { context.appComponent.oseWidgetManager }
     val canConfigureSearchWidget = remember(
         dockSearchPreference.value,
@@ -334,6 +338,31 @@ internal fun SearchScreen(activity: Activity) {
     PreferenceGroup(title = stringResource(R.string.home_settings_search_bar_category)) {
         item {
             DockSearchProviderPreference(resumeVersion)
+        }
+        item {
+            BooleanPreference(
+                item = LauncherPrefsExt.COMPACT_SEARCH_BAR,
+                titleRes = R.string.compact_search_bar_title,
+                summaryRes = R.string.compact_search_bar_summary,
+            )
+        }
+        if (compactSearchPreference.value) {
+            val actionOptions = listOf(
+                "google_search" to stringResource(R.string.compact_search_bar_action_google),
+                "lens" to stringResource(R.string.compact_search_bar_action_lens),
+                "mic" to stringResource(R.string.compact_search_bar_action_mic),
+                "gemini" to stringResource(R.string.compact_search_bar_action_gemini),
+            )
+            item {
+                ListPreference(
+                    title = stringResource(R.string.compact_search_bar_action_title),
+                    summary = actionOptions.find { it.first == compactSearchActionPreference.value }?.second
+                        ?: stringResource(R.string.compact_search_bar_action_google),
+                    options = actionOptions,
+                    value = compactSearchActionPreference.value,
+                    onValueChange = { compactSearchActionPreference.onChange(it) },
+                )
+            }
         }
         if (canConfigureSearchWidget) {
             item {

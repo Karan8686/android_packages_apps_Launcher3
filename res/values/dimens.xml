@@ -382,6 +382,15 @@
     <dimen name="big_folder_preview_padding_4col">6dp</dimen>
     <dimen name="big_folder_preview_padding_5col">4dp</dimen>
 
+    <!-- Compact Search Bar -->
+    <dimen name="compact_search_bar_width">125dp</dimen>
+    <dimen name="compact_search_bar_height">36dp</dimen>
+    <dimen name="compact_search_bar_icon_size">20dp</dimen>
+    <dimen name="compact_search_bar_icon_end_gap">10dp</dimen>
+    <dimen name="compact_search_bar_icon_text_gap">4dp</dimen>
+    <dimen name="compact_search_bar_text_end_gap">20dp</dimen>
+    <dimen name="compact_search_bar_text_size">16sp</dimen>
+
     <!-- Resizable folder styling -->
     <dimen name="folder_resize_outline_stroke_width">2dp</dimen>
     <dimen name="folder_resize_handle_stroke_width">8dp</dimen>

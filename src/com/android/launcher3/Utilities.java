@@ -1077,4 +1077,21 @@ public final class Utilities {
     public static boolean isWorkspaceEditAllowed(Context context) {
         return !LauncherPrefsExt.WORKSPACE_LOCK.get(context);
     }
+
+    public static final String GSA_PACKAGE = "com.google.android.googlequicksearchbox";
+    public static final String GEMINI_PACKAGE = "com.google.android.apps.bard";
+    public static final String LENS_ACTIVITY = "com.google.android.apps.search.lens.LensExportedActivity";
+    public static final String LENS_URI = "google://lens";
+
+    public static boolean isPackageInstalled(Context context, String pkg) {
+        try {
+            return context.getPackageManager().getApplicationInfo(pkg, 0).enabled;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public static boolean isGSAEnabled(Context context) {
+        return isPackageInstalled(context, GSA_PACKAGE);
+    }
 }

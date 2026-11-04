@@ -58,6 +58,7 @@ import com.android.launcher3.LauncherState.ScaleAndTranslation;
 import com.android.launcher3.anim.AnimatedFloat;
 import com.android.launcher3.anim.PendingAnimation;
 import com.android.launcher3.anim.PropertySetter;
+import com.android.launcher3.util.MultiPropertyFactory;
 import com.android.launcher3.anim.SpringAnimationBuilder;
 import com.android.launcher3.graphics.Scrim;
 import com.android.launcher3.graphics.SysUiScrim;
@@ -159,6 +160,10 @@ public class WorkspaceStateTransitionAnimation {
                 workspaceFadeInterpolator);
         float hotseatIconsAlpha = (elements & HOTSEAT_ICONS) != 0 ? 1 : 0;
         propertySetter.setViewAlpha(hotseat, hotseatIconsAlpha, hotseatFadeInterpolator);
+        float compactQsbAlpha = state == NORMAL || !hotseat.isCompactSearchBarEnabled() ? 1 : 0;
+        propertySetter.setFloat(hotseat.getQsbAlpha(Hotseat.ALPHA_CHANNEL_STATE_VISIBILITY),
+                MultiPropertyFactory.MULTI_PROPERTY_VALUE, compactQsbAlpha,
+                hotseatFadeInterpolator);
 
         // Update the accessibility flags for hotseat based on launcher state.
         hotseat.setImportantForAccessibility(

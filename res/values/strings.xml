@@ -592,4 +592,14 @@
     <!-- Accessibility announcements for workspace folder and icon resizing. -->
     <string name="folder_resized">Folder resized to width %1$d height %2$d</string>
     <string name="folder_frame_name">Resize folder %1$s</string>
+
+    <!-- Compact Search Bar -->
+    <string name="compact_search_bar_title">Compact search bar</string>
+    <string name="compact_search_bar_summary">Show a compact search pill above the app dock</string>
+    <string name="compact_search_bar_action_title">Compact search action</string>
+    <string name="compact_search_bar_action_google">Google search</string>
+    <string name="compact_search_bar_action_lens">Google Lens</string>
+    <string name="compact_search_bar_action_mic">Voice search</string>
+    <string name="compact_search_bar_action_gemini">Gemini</string>
+    <string name="label_gemini_search">Gemini search</string>
 </resources>
