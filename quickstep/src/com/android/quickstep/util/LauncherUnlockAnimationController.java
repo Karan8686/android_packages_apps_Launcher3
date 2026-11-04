@@ -44,7 +44,6 @@ public final class LauncherUnlockAnimationController
                     if (!isOn) {
                         mWaitingForWakeAndUnlock = true;
                         mRetryCount = 0;
-                        MAIN_EXECUTOR.getHandler().removeCallbacks(mCheckWakeAndUnlockRunnable);
                     } else {
                         checkAndPlayWakeAndUnlock();
                     }
@@ -56,7 +55,6 @@ public final class LauncherUnlockAnimationController
                 }
             };
 
-    private final Runnable mCheckWakeAndUnlockRunnable = this::checkAndPlayWakeAndUnlock;
     private long mStartDelay;
     private long mTotalDuration = DEFAULT_TOTAL_DURATION_MS;
     private boolean mDestroyed;
@@ -79,14 +77,12 @@ public final class LauncherUnlockAnimationController
                 || !ScreenOnTracker.INSTANCE.get(mLauncher).isScreenOn()) {
             mWaitingForWakeAndUnlock = true;
             mRetryCount = 0;
-            MAIN_EXECUTOR.getHandler().removeCallbacks(mCheckWakeAndUnlockRunnable);
         }
     }
 
     public void onStop() {
         mWaitingForWakeAndUnlock = true;
         mRetryCount = 0;
-        MAIN_EXECUTOR.getHandler().removeCallbacks(mCheckWakeAndUnlockRunnable);
     }
 
     private void checkAndPlayWakeAndUnlock() {
@@ -101,7 +97,7 @@ public final class LauncherUnlockAnimationController
             if (km != null && km.isKeyguardLocked()) {
                 if (mRetryCount < 6) {
                     mRetryCount++;
-                    MAIN_EXECUTOR.getHandler().postDelayed(mCheckWakeAndUnlockRunnable, 40);
+                    MAIN_EXECUTOR.getHandler().postDelayed(this::checkAndPlayWakeAndUnlock, 40);
                 }
                 return;
             }
@@ -191,7 +187,6 @@ public final class LauncherUnlockAnimationController
     public void destroy() {
         MAIN_EXECUTOR.execute(() -> {
             mDestroyed = true;
-            MAIN_EXECUTOR.getHandler().removeCallbacks(mCheckWakeAndUnlockRunnable);
             ScreenOnTracker.INSTANCE.get(mLauncher).removeListener(mScreenOnListener);
             AnimatorPlaybackController controller = getPlaybackController();
             if (controller != null) {
