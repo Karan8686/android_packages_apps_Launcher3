@@ -345,15 +345,16 @@ public class PreviewItemManager {
 
             if (isThreeByThreeBase) {
                 // 3x3 grid (3 items across, 2 inner gaps, 2 outer paddings)
-                outerPadding = boxSize * 0.09f;
-                gap = boxSize * 0.065f;
+                outerPadding = boxSize * 0.055f;
+                gap = boxSize * 0.040f;
                 itemSize = (boxSize - 2f * outerPadding - 2f * gap) / 3f;
             } else {
                 // 2x2 grid (2 items across, 1 inner gap, 2 outer paddings)
-                outerPadding = boxSize * 0.115f;
-                gap = boxSize * 0.085f;
+                outerPadding = boxSize * 0.065f;
+                gap = boxSize * 0.055f;
                 float rawItemSize = (boxSize - 2f * outerPadding - gap) / 2f;
-                itemSize = Math.min(rawItemSize, deviceProfile.folderIconSizePx * 0.88f);
+                itemSize = Math.min(rawItemSize,
+                        (float) deviceProfile.getWorkspaceIconProfile().getIconSizePx());
             }
 
             float totalGridWidth = columns * itemSize + (columns - 1) * gap;
