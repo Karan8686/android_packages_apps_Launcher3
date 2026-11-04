@@ -1389,9 +1389,6 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
                     int iconSize;
                     if (isAllApps && mActivity != null) {
                         gap = mActivity.getDeviceProfile().getAllAppsProfile().getIconDrawablePaddingPx();
-                        if (cellPaddingY <= 0) {
-                            cellPaddingY = mActivity.getDeviceProfile().getAllAppsProfile().getCellYPaddingPx();
-                        }
                         iconSize = mActivity.getDeviceProfile().getAllAppsProfile().getIconSizePx();
                     } else if (mActivity != null) {
                         gap = mActivity.getDeviceProfile().getWorkspaceIconProfile().getIconDrawablePaddingPx();

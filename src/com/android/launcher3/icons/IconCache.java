@@ -497,7 +497,7 @@ public class IconCache extends BaseIconCache {
                                 && lai != null) {
                             String dbFreshness = c.getString(freshnessColumnIndex);
                             String expectedFreshness = LauncherActivityCachingLogic.INSTANCE
-                                    .getFreshnessIdentifier(lai, iconProvider);
+                                    .getFreshnessIdentifier(lai, mIconProvider);
                             if (!Objects.equals(dbFreshness, expectedFreshness)) {
                                 continue;
                             }
