@@ -347,13 +347,13 @@ internal fun SearchScreen(activity: Activity) {
             )
         }
         if (compactSearchPreference.value) {
-            val actionOptions = listOf(
-                "google_search" to stringResource(R.string.compact_search_bar_action_google),
-                "lens" to stringResource(R.string.compact_search_bar_action_lens),
-                "mic" to stringResource(R.string.compact_search_bar_action_mic),
-                "gemini" to stringResource(R.string.compact_search_bar_action_gemini),
-            )
             item {
+                val actionOptions = listOf(
+                    "google_search" to stringResource(R.string.compact_search_bar_action_google),
+                    "lens" to stringResource(R.string.compact_search_bar_action_lens),
+                    "mic" to stringResource(R.string.compact_search_bar_action_mic),
+                    "gemini" to stringResource(R.string.compact_search_bar_action_gemini),
+                )
                 ListPreference(
                     title = stringResource(R.string.compact_search_bar_action_title),
                     summary = actionOptions.find { it.first == compactSearchActionPreference.value }?.second
