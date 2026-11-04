@@ -48,7 +48,7 @@ public final class LauncherUnlockAnimationController
             int selectedPage) {
         MAIN_EXECUTOR.execute(() -> {
             if (!mDestroyed) {
-                prepareAnimation(true);
+                prepareAnimation(false);
             }
         });
     }
@@ -60,15 +60,14 @@ public final class LauncherUnlockAnimationController
                 return;
             }
             long totalDuration = duration + startDelay;
-            boolean durationChanged = totalDuration != mTotalDuration || startDelay != mStartDelay;
-            mStartDelay = startDelay;
-            mTotalDuration = totalDuration > 0 ? totalDuration : DEFAULT_TOTAL_DURATION_MS;
-
-            AnimatorPlaybackController controller = getPlaybackController();
-            if (controller == null || durationChanged) {
-                prepareAnimation(true);
-                controller = getPlaybackController();
+            if (totalDuration != mTotalDuration || startDelay != mStartDelay) {
+                mStartDelay = startDelay;
+                mTotalDuration = totalDuration;
+                if (getPlaybackController() != null) {
+                    prepareAnimation(false);
+                }
             }
+            AnimatorPlaybackController controller = getPlaybackController();
             if (controller != null) {
                 controller.start();
             }
@@ -117,10 +116,7 @@ public final class LauncherUnlockAnimationController
     }
 
     private void prepareAnimation(boolean force) {
-        if (!mLauncher.isInState(LauncherState.NORMAL)) {
-            mLauncher.getStateManager().goToState(LauncherState.NORMAL, false);
-        }
-        if (!mLauncher.isStarted() || force) {
+        if (mLauncher.isInState(LauncherState.NORMAL) && (!mLauncher.isStarted() || force)) {
             mLauncher.getAnimationCoordinator().setAnimation(
                     this, this::addUnlockAnimators, mTotalDuration);
         }
