@@ -106,6 +106,7 @@ public class IconCache extends BaseIconCache {
     private final InstantAppResolver mInstantAppResolver;
     private final CancellableTask mCancelledTask;
     private final LauncherIcons.IconPool mIconPool;
+    private final LauncherIconProvider mLauncherIconProvider;
 
     private final SparseArray<BitmapInfo> mWidgetCategoryBitmapInfos;
 
@@ -128,6 +129,7 @@ public class IconCache extends BaseIconCache {
         mUserManager = userCache;
         mInstallSessionHelper = installSessionHelper;
         mIconPool = iconPool;
+        mLauncherIconProvider = iconProvider;
 
         mInstantAppResolver = instantAppResolver;
         mWidgetCategoryBitmapInfos = new SparseArray<>();
@@ -497,7 +499,7 @@ public class IconCache extends BaseIconCache {
                                 && lai != null) {
                             String dbFreshness = c.getString(freshnessColumnIndex);
                             String expectedFreshness = LauncherActivityCachingLogic.INSTANCE
-                                    .getFreshnessIdentifier(lai, mIconProvider);
+                                    .getFreshnessIdentifier(lai, mLauncherIconProvider);
                             if (!Objects.equals(dbFreshness, expectedFreshness)) {
                                 continue;
                             }
