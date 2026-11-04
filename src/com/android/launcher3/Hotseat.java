@@ -307,19 +307,27 @@ public class Hotseat extends CellLayout implements Insettable {
         if (isCompactSearchBarEnabled() && !grid.isVerticalBarLayout()) {
             int compactBarHeight = getResources().getDimensionPixelSize(
                     R.dimen.compact_search_bar_height);
-            int compactBarTopMargin = getResources().getDimensionPixelSize(
-                    R.dimen.compact_search_bar_top_margin);
-            int compactBarBottomGap = getResources().getDimensionPixelSize(
-                    R.dimen.compact_search_bar_bottom_gap);
 
             int targetBottomSpace = Math.max(
                     insets.bottom + getResources().getDimensionPixelSize(
                             R.dimen.compact_search_bar_dock_bottom_inset),
                     getResources().getDimensionPixelSize(
                             R.dimen.compact_search_bar_dock_bottom_min));
-
             padding.bottom = targetBottomSpace;
-            padding.top = compactBarTopMargin + compactBarHeight + compactBarBottomGap;
+
+            int pageIndicatorGap = getResources().getDimensionPixelSize(
+                    R.dimen.workspace_page_indicator_height)
+                    - getResources().getDimensionPixelSize(
+                    R.dimen.workspace_page_indicator_overlap_workspace);
+
+            int totalInterRowSpace = grid.hotseatBarSizePx + pageIndicatorGap
+                    - grid.hotseatCellHeightPx - padding.bottom;
+
+            int minGap = getResources().getDimensionPixelSize(
+                    R.dimen.compact_search_bar_gap_min);
+            int symmetricGap = Math.max(minGap, (totalInterRowSpace - compactBarHeight) / 2);
+
+            padding.top = symmetricGap * 2 + compactBarHeight;
             lp.height = padding.top + grid.hotseatCellHeightPx + padding.bottom;
         }
         setPadding(padding.left, padding.top + extraQsbTopInset, padding.right, padding.bottom);
@@ -414,8 +422,8 @@ public class Hotseat extends CellLayout implements Insettable {
         int top;
         int bottom;
         if (isCompactSearchBarEnabled() && !dp.isQsbInline) {
-            int compactBarTopMargin = getResources().getDimensionPixelSize(
-                    R.dimen.compact_search_bar_top_margin);
+            int compactBarTopMargin = Math.max(0,
+                    (getPaddingTop() - qsbMeasuredHeight) / 2);
             top = compactBarTopMargin;
             bottom = top + qsbMeasuredHeight;
         } else {
