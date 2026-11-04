@@ -602,4 +602,5 @@
     <string name="compact_search_bar_action_mic">Voice search</string>
     <string name="compact_search_bar_action_gemini">Gemini</string>
     <string name="label_gemini_search">Gemini search</string>
+    <string name="label_search">Search</string>
 </resources>
