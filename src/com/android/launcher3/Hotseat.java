@@ -312,12 +312,15 @@ public class Hotseat extends CellLayout implements Insettable {
             int compactBarBottomGap = getResources().getDimensionPixelSize(
                     R.dimen.compact_search_bar_bottom_gap);
 
-            int normalBottomPadding = Math.max(0, grid.hotseatBarBottomSpacePx - (Math.abs(
-                    grid.hotseatCellHeightPx - grid.getWorkspaceIconProfile().getIconSizePx()) / 2));
-            padding.bottom = normalBottomPadding;
+            int targetBottomSpace = Math.max(
+                    insets.bottom + getResources().getDimensionPixelSize(
+                            R.dimen.compact_search_bar_dock_bottom_inset),
+                    getResources().getDimensionPixelSize(
+                            R.dimen.compact_search_bar_dock_bottom_min));
+
+            padding.bottom = targetBottomSpace;
             padding.top = compactBarTopMargin + compactBarHeight + compactBarBottomGap;
-            lp.height = Math.max(grid.hotseatBarSizePx,
-                    padding.top + grid.hotseatCellHeightPx + padding.bottom);
+            lp.height = padding.top + grid.hotseatCellHeightPx + padding.bottom;
         }
         setPadding(padding.left, padding.top + extraQsbTopInset, padding.right, padding.bottom);
         setLayoutParams(lp);

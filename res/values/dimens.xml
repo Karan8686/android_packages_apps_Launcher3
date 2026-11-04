@@ -385,8 +385,10 @@
     <!-- Compact Search Bar -->
     <dimen name="compact_search_bar_width">125dp</dimen>
     <dimen name="compact_search_bar_height">36dp</dimen>
-    <dimen name="compact_search_bar_top_margin">6dp</dimen>
-    <dimen name="compact_search_bar_bottom_gap">8dp</dimen>
+    <dimen name="compact_search_bar_top_margin">4dp</dimen>
+    <dimen name="compact_search_bar_bottom_gap">6dp</dimen>
+    <dimen name="compact_search_bar_dock_bottom_inset">4dp</dimen>
+    <dimen name="compact_search_bar_dock_bottom_min">12dp</dimen>
     <dimen name="compact_search_bar_icon_size">20dp</dimen>
     <dimen name="compact_search_bar_icon_end_gap">10dp</dimen>
     <dimen name="compact_search_bar_icon_text_gap">4dp</dimen>
