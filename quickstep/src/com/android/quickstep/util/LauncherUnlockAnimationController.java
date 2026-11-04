@@ -18,13 +18,16 @@ package com.android.quickstep.util;
 
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 
+import android.app.KeyguardManager;
 import android.graphics.Rect;
+import android.os.SystemClock;
 import android.util.Log;
 
 import com.android.launcher3.LauncherState;
 import com.android.launcher3.anim.AnimatorPlaybackController;
 import com.android.launcher3.anim.PendingAnimation;
 import com.android.launcher3.uioverrides.QuickstepLauncher;
+import com.android.launcher3.util.ScreenOnTracker;
 import com.android.systemui.shared.system.smartspace.ILauncherUnlockAnimationController;
 
 public final class LauncherUnlockAnimationController
@@ -34,13 +37,75 @@ public final class LauncherUnlockAnimationController
     private static final long DEFAULT_TOTAL_DURATION_MS = 500L;
 
     private final QuickstepLauncher mLauncher;
+    private final ScreenOnTracker.ScreenOnListener mScreenOnListener =
+            new ScreenOnTracker.ScreenOnListener() {
+                @Override
+                public void onScreenOnChanged(boolean isOn) {
+                    if (!isOn) {
+                        mWaitingForWakeAndUnlock = true;
+                        mRetryCount = 0;
+                    } else {
+                        checkAndPlayWakeAndUnlock();
+                    }
+                }
+
+                @Override
+                public void onUserPresent() {
+                    checkAndPlayWakeAndUnlock();
+                }
+            };
 
     private long mStartDelay;
     private long mTotalDuration = DEFAULT_TOTAL_DURATION_MS;
     private boolean mDestroyed;
+    private boolean mWaitingForWakeAndUnlock;
+    private long mWakeAndUnlockTriggerTime;
+    private int mRetryCount;
 
     public LauncherUnlockAnimationController(QuickstepLauncher launcher) {
         mLauncher = launcher;
+        ScreenOnTracker.INSTANCE.get(launcher).addListener(mScreenOnListener);
+    }
+
+    public void onResume() {
+        checkAndPlayWakeAndUnlock();
+    }
+
+    public void onPause() {
+        KeyguardManager km = mLauncher.getSystemService(KeyguardManager.class);
+        if ((km != null && km.isKeyguardLocked())
+                || !ScreenOnTracker.INSTANCE.get(mLauncher).isScreenOn()) {
+            mWaitingForWakeAndUnlock = true;
+            mRetryCount = 0;
+        }
+    }
+
+    public void onStop() {
+        mWaitingForWakeAndUnlock = true;
+        mRetryCount = 0;
+    }
+
+    private void checkAndPlayWakeAndUnlock() {
+        MAIN_EXECUTOR.execute(() -> {
+            if (mDestroyed || !mWaitingForWakeAndUnlock) {
+                return;
+            }
+            if (!mLauncher.isStarted() && !mLauncher.hasBeenResumed()) {
+                return;
+            }
+            KeyguardManager km = mLauncher.getSystemService(KeyguardManager.class);
+            if (km != null && km.isKeyguardLocked()) {
+                if (mRetryCount < 6) {
+                    mRetryCount++;
+                    MAIN_EXECUTOR.getHandler().postDelayed(this::checkAndPlayWakeAndUnlock, 40);
+                }
+                return;
+            }
+            mRetryCount = 0;
+            mWaitingForWakeAndUnlock = false;
+            mWakeAndUnlockTriggerTime = SystemClock.uptimeMillis();
+            playUnlockAnimation(true, DEFAULT_TOTAL_DURATION_MS, 0);
+        });
     }
 
     @Override
@@ -48,6 +113,7 @@ public final class LauncherUnlockAnimationController
             int selectedPage) {
         MAIN_EXECUTOR.execute(() -> {
             if (!mDestroyed) {
+                mWaitingForWakeAndUnlock = false;
                 prepareAnimation(true);
             }
         });
@@ -59,6 +125,14 @@ public final class LauncherUnlockAnimationController
             if (mDestroyed) {
                 return;
             }
+            mWaitingForWakeAndUnlock = false;
+            long now = SystemClock.uptimeMillis();
+            AnimatorPlaybackController existing = getPlaybackController();
+            if (existing != null && existing.getAnimationPlayer().isRunning()
+                    && (now - mWakeAndUnlockTriggerTime < mTotalDuration)) {
+                return;
+            }
+
             long totalDuration = duration + startDelay;
             boolean durationChanged = totalDuration != mTotalDuration || startDelay != mStartDelay;
             mStartDelay = startDelay;
@@ -85,6 +159,10 @@ public final class LauncherUnlockAnimationController
                 Log.e(TAG, "setUnlockAmount called with unsupported value " + amount);
                 return;
             }
+            // If wake-and-unlock animation was recently started, don't let SysUI abort it
+            if (SystemClock.uptimeMillis() - mWakeAndUnlockTriggerTime < mTotalDuration) {
+                return;
+            }
             AnimatorPlaybackController controller = getPlaybackController();
             if (controller == null) {
                 return;
@@ -109,6 +187,7 @@ public final class LauncherUnlockAnimationController
     public void destroy() {
         MAIN_EXECUTOR.execute(() -> {
             mDestroyed = true;
+            ScreenOnTracker.INSTANCE.get(mLauncher).removeListener(mScreenOnListener);
             AnimatorPlaybackController controller = getPlaybackController();
             if (controller != null) {
                 controller.dispatchOnCancel();
