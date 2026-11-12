@@ -439,13 +439,7 @@ public class CompactSearchBar extends FrameLayout
     private void launchMic() {
         View target = mInner != null ? mInner : this;
         try {
-            Intent intent = new Intent();
-            if (Utilities.isMusicSearchEnabled(mContext)) {
-                intent.setAction("com.google.android.googlequicksearchbox.MUSIC_SEARCH");
-                intent.setPackage(QsbContainerView.getSearchWidgetPackageName(mContext));
-            } else {
-                intent.setAction("android.intent.action.VOICE_COMMAND");
-            }
+            Intent intent = new Intent("android.intent.action.VOICE_COMMAND");
             startActivitySafely(target, intent);
         } catch (Exception e) {
             Log.e(TAG, "Mic launch failed", e);

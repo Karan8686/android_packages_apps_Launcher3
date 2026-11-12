@@ -280,7 +280,7 @@ public class Hotseat extends CellLayout implements Insettable {
 
         mBackgroundTintDrawable.setColor(tintColor);
         int strokeColor = ColorUtils.setAlphaComponent(baseColor, Math.round(alpha * 0.5f));
-        mBackgroundTintDrawable.setStroke(Math.round(Utilities.dpToPx(1f, context.getResources().getDisplayMetrics())), strokeColor);
+        mBackgroundTintDrawable.setStroke(Math.max(1, Utilities.dpToPx(1f, context)), strokeColor);
         mBackgroundTintDrawable.draw(canvas);
 
         super.dispatchDraw(canvas);
