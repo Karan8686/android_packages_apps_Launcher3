@@ -321,7 +321,7 @@ public class Hotseat extends CellLayout implements Insettable {
         int paddingX = Math.round(BACKGROUND_END_PADDING_DP * density);
         int paddingY = Math.round(BACKGROUND_ICON_PADDING_DP * density);
 
-        int iconSize = mActivity.getDeviceProfile().getHotseatProfile().getIconSizePx();
+        int iconSize = mActivity.getDeviceProfile().getWorkspaceIconProfile().getIconSizePx();
         View container = mShortcutsAndWidgets;
         int containerTx = container != null ? Math.round(container.getTranslationX()) : 0;
         int containerTy = container != null ? Math.round(container.getTranslationY()) : 0;
@@ -345,8 +345,6 @@ public class Hotseat extends CellLayout implements Insettable {
             View inner = mQsb.findViewById(R.id.compact_search_bar_inner);
             return inner != null ? inner : mQsb;
         }
-        View inner = mQsb.findViewById(R.id.inner);
-        if (inner != null) return inner;
         return mQsb;
     }
 
