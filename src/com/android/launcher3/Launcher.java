@@ -2526,7 +2526,6 @@ public class Launcher extends StatefulActivity<LauncherState>
         String searchWidgetPackage = com.android.launcher3.qsb.QsbContainerView.getSearchWidgetPackageName(this);
         return packageName.equals(searchWidgetPackage);
     }
-    }
 
     private ValueAnimator createNewAppBounceAnimation(View v, int i) {
         ValueAnimator bounceAnim = new PropertyListBuilder().alpha(1).scale(1).build(v)
