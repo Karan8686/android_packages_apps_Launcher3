@@ -36,6 +36,8 @@ internal fun HomeScreen(
 ) {
     val showRotation = remember { shouldShowRotationPreference(activity) }
     val googleSearchVisible = rememberPackageEnabled(SEARCH_PACKAGE)
+    val showHotseatBgPreference = rememberLauncherPreference(LauncherPrefsExt.SHOW_HOTSEAT_BG)
+    val hotseatShapePreference = rememberLauncherPreference(LauncherPrefsExt.HOTSEAT_SHAPE)
     PreferenceGroup(title = stringResource(R.string.home_settings_layout_category)) {
         item {
             CategoryPreference(
@@ -43,6 +45,44 @@ internal fun HomeScreen(
                 summaryRes = R.string.home_grid_summary,
                 onClick = { onNavigate(HomeSettingsRoutes.HOME_GRID) },
             )
+        }
+    }
+    PreferenceGroup(title = stringResource(R.string.hotseat_bg_title)) {
+        item {
+            BooleanPreference(
+                item = LauncherPrefsExt.SHOW_HOTSEAT_BG,
+                titleRes = R.string.hotseat_bg_title,
+                summaryRes = R.string.hotseat_bg_summary,
+            )
+        }
+        if (showHotseatBgPreference.value) {
+            item {
+                BooleanPreference(
+                    item = LauncherPrefsExt.HOTSEAT_BLUR,
+                    titleRes = R.string.hotseat_blur_title,
+                    summaryRes = R.string.hotseat_blur_summary,
+                )
+            }
+            item {
+                val shapeOptions = listOf(
+                    "capsule" to stringResource(R.string.hotseat_shape_capsule),
+                    "rounded_square" to stringResource(R.string.hotseat_shape_rounded_square),
+                )
+                ListPreference(
+                    title = stringResource(R.string.hotseat_shape_title),
+                    summary = shapeOptions.find { it.first == hotseatShapePreference.value }?.second
+                        ?: stringResource(R.string.hotseat_shape_capsule),
+                    options = shapeOptions,
+                    value = hotseatShapePreference.value,
+                    onValueChange = { hotseatShapePreference.onChange(it) },
+                )
+            }
+            item {
+                PercentSliderPreference(
+                    item = LauncherPrefsExt.HOTSEAT_OPACITY,
+                    titleRes = R.string.background_opacity_title,
+                )
+            }
         }
     }
     PreferenceGroup(title = stringResource(R.string.home_settings_labels_category)) {

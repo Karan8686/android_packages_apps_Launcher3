@@ -24,6 +24,8 @@ import static com.android.quickstep.GestureState.GestureEndTarget.HOME;
 import static com.android.quickstep.GestureState.GestureEndTarget.RECENTS;
 import static com.android.quickstep.util.FloatingIconViewHelper.getFloatingIconView;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.content.Context;
 import android.graphics.Rect;
@@ -258,7 +260,16 @@ public class LauncherSwipeHandlerV2 extends AbsSwipeUpHandler<
             }
 
             @Override
+            public boolean isQsb() {
+                return mContainer != null && mContainer.getHotseat() != null
+                        && mContainer.getHotseat().isQsbView(workspaceView);
+            }
+
+            @Override
             public float getEndRadius(RectF cropRectF) {
+                if (isQsb()) {
+                    return Math.min(cropRectF.width(), cropRectF.height()) / 2f;
+                }
                 if (workspaceView instanceof com.android.launcher3.BubbleTextView btv
                         && btv.isMultiSpan()) {
                     float targetWidth = Math.max(1f, iconLocation.width());
@@ -272,6 +283,25 @@ public class LauncherSwipeHandlerV2 extends AbsSwipeUpHandler<
                 super.setAnimation(anim);
                 mSiblingAnimation = anim;
                 mSiblingAnimation.addAnimatorListener(floatingIconView);
+                if (isQsb()) {
+                    final boolean[] squished = {false};
+                    final Runnable playSquish = () -> {
+                        if (squished[0]) return;
+                        squished[0] = true;
+                        if (mContainer != null && mContainer.getHotseat() != null) {
+                            mContainer.getHotseat().playQsbSquishAnimation();
+                        }
+                    };
+                    mSiblingAnimation.addOnUpdateListener((rect, progress) -> {
+                        if (progress >= 0.9f) playSquish.run();
+                    });
+                    mSiblingAnimation.addAnimatorListener(new AnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationEnd(Animator animation) {
+                            playSquish.run();
+                        }
+                    });
+                }
                 floatingIconView.setOnTargetChangeListener(
                         mSiblingAnimation::onTargetPositionChanged);
                 floatingIconView.setFastFinishRunnable(mSiblingAnimation::end);

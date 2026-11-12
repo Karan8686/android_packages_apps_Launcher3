@@ -506,4 +506,22 @@ public class RectFSpringAnim extends ReleaseCheck {
         }
     }
 
+    /**
+     * Softer, slightly under-damped spring used when the app closes into the search bar, so the
+     * window glides into the pill instead of snapping to it.
+     */
+    public static final class QsbSpringConfig extends DefaultSpringConfig {
+        public QsbSpringConfig(Context context, DeviceProfile deviceProfile,
+                RectF startRect, RectF targetRect) {
+            super(context, deviceProfile, startRect, targetRect);
+            tracking = TRACKING_CENTER;
+            stiffnessX = 120f;
+            stiffnessY = 105f;
+            rectStiffness = 130f;
+            dampingX = 0.95f;
+            dampingY = 0.92f;
+            rectDamping = 1f;
+        }
+    }
+
 }

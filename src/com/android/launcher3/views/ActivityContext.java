@@ -228,6 +228,11 @@ public interface ActivityContext extends SavedStateRegistryOwner {
         return false;
     }
 
+    /** @return {@code true} if window/surface blurs are currently paused during transitions */
+    default boolean isCrossWindowBlurPaused() {
+        return false;
+    }
+
     /** @return the resource id of the style to apply for the current blur state in All Apps. */
     default int getAllAppsBlurStyleResId() {
         if (!Flags.allAppsBlur()) {

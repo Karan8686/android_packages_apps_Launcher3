@@ -15,6 +15,7 @@
   -->
 
 <resources>
+    <color name="appseat_color">@*android:color/system_neutral2_900</color>
     <color name="materialColorBackground">@color/system_background_dark</color>
     <color name="materialColorControlActivated">@color/system_control_activated_dark</color>
     <color name="materialColorControlHighlight">@color/system_control_highlight_dark</color>

@@ -2476,27 +2476,56 @@ public class Launcher extends StatefulActivity<LauncherState>
         mWorkspace.forEachVisiblePage(page -> containers.add((CellLayout) page));
         CellLayout[] containerArray = containers.toArray(new CellLayout[0]);
         LauncherBindableItemsContainer visibleContainer =
-                op -> mapOverCellLayouts(containerArray, op);
+                op -> mapOverCellLayouts(containerArray, (info, view) ->
+                        (mHotseat == null || !mHotseat.isQsbView(view)) && op.evaluate(info, view));
+
+        View qsbTarget = mHotseat == null ? null : mHotseat.getQsbForAppClose();
+        if (qsbTarget != null && qsbTarget.isAttachedToWindow() && qsbTarget.isShown()
+                && qsbTarget.getTag() instanceof ItemInfo info && info.user.equals(user)
+                && preferredItem.test(info)) {
+            return qsbTarget;
+        }
 
         // Order: Preferred item by itself or in folder, then by matching package/user
         View target = visibleContainer.getFirstMatch(
                 preferredItem, forFolderMatch(preferredItem),
                 packageAndUserAndApp, forFolderMatch(packageAndUserAndApp));
 
-        if (!(target instanceof FolderIcon folderIcon)) {
+        if (target instanceof FolderIcon folderIcon) {
+            View previewItem =
+                    folderIcon.getPreviewItemLaunchSourceForAppClose(
+                            preferredItem);
+            if (previewItem == null) {
+                previewItem =
+                        folderIcon.getPreviewItemLaunchSourceForAppClose(
+                                packageAndUserAndApp);
+            }
+            return previewItem != null ? previewItem : target;
+        }
+        if (target != null) {
             return target;
         }
 
-        View previewItem =
-                folderIcon.getPreviewItemLaunchSourceForAppClose(
-                        preferredItem);
-        if (previewItem == null) {
-            previewItem =
-                    folderIcon.getPreviewItemLaunchSourceForAppClose(
-                            packageAndUserAndApp);
+        if (mHotseat != null && android.os.Process.myUserHandle().equals(user)
+                && isSearchPackageForQsb(packageName)) {
+            View qsb = mHotseat.getQsbForAppClose();
+            if (qsb != null && qsb.isAttachedToWindow() && qsb.isShown()) {
+                return qsb;
+            }
         }
 
-        return previewItem != null ? previewItem : target;
+        return null;
+    }
+
+    private boolean isSearchPackageForQsb(String packageName) {
+        if (packageName == null) return false;
+        if (Utilities.GSA_PACKAGE.equals(packageName)
+                || Utilities.GEMINI_PACKAGE.equals(packageName)) {
+            return true;
+        }
+        String searchWidgetPackage = com.android.launcher3.qsb.QsbContainerView.getSearchWidgetPackageName(this);
+        return packageName.equals(searchWidgetPackage);
+    }
     }
 
     private ValueAnimator createNewAppBounceAnimation(View v, int i) {

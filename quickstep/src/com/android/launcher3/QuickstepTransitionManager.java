@@ -1611,14 +1611,19 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
             targetRect.set(getDefaultWindowTargetRect());
         }
 
+        final boolean isQsbTarget = launcherView != null && mLauncher.getHotseat() != null
+                && mLauncher.getHotseat().isQsbView(launcherView);
         boolean useTaskbarHotseatParams = mDeviceProfile.isTaskbarPresent && isInHotseat;
-        RectFSpringAnim anim = useAxAnimation
+        RectFSpringAnim anim = isQsbTarget
+                ? new RectFSpringAnim(new RectFSpringAnim.QsbSpringConfig(
+                        mLauncher, mDeviceProfile, closingWindowStartRectF, targetRect))
+                : (useAxAnimation
                 ? AxSpringAnimPlayer.createHomeGestureAnim(
                         mLauncher, mDeviceProfile, closingWindowStartRectF, targetRect, useTaskbarHotseatParams)
                 : new RectFSpringAnim(useTaskbarHotseatParams
                         ? new TaskbarHotseatSpringConfig(mLauncher, closingWindowStartRectF, targetRect)
                         : new DefaultSpringConfig(mLauncher, mDeviceProfile, closingWindowStartRectF,
-                                targetRect));
+                                targetRect)));
 
         // Hook up floating views to the closing window animators.
         // note the coordinate of closingWindowStartRect is based on launcher
@@ -1634,11 +1639,14 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
 
             // We want the window alpha to be 0 once this threshold is met, so that the
             // FloatingIconView can be seen morphing into the icon shape.
-            final float windowAlphaThreshold = 1f - SHAPE_PROGRESS_DURATION;
+            final float windowAlphaThreshold = isQsbTarget ? 0.5f : (1f - SHAPE_PROGRESS_DURATION);
 
             final float customEndRadius =
                     (launcherView instanceof BubbleTextView btv && btv.isMultiSpan())
-                            ? btv.getIconBackgroundCornerRadius() : -1f;
+                            ? btv.getIconBackgroundCornerRadius()
+                            : isQsbTarget
+                            ? Math.min(targetRect.width(), targetRect.height()) / 2f
+                            : -1f;
 
             RectFSpringAnim.OnUpdateListener runner = new SpringAnimRunner(targets, targetRect,
                     closingWindowStartRect, closingWindowOriginalRect, startWindowCornerRadius,
@@ -1650,6 +1658,15 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
                                 + progress * (customEndRadius - startWindowCornerRadius);
                     }
                     return super.getCornerRadius(progress);
+                }
+
+                @Override
+                protected float getWindowAlpha(float progress) {
+                    if (isQsbTarget) {
+                        float t = Math.max(0f, Math.min(1f, (progress - 0.3f) / 0.65f));
+                        return 1f - t * t * (3f - 2f * t);
+                    }
+                    return super.getWindowAlpha(progress);
                 }
 
                 @Override
@@ -1940,15 +1957,28 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
             anim.play(getFallbackClosingWindowAnimators(appTargets));
         }
 
+        final boolean[] qsbSquished = {false};
+        final Runnable playQsbSquish = () -> {
+            if (qsbSquished[0]) return;
+            qsbSquished[0] = true;
+            if (launcherView != null && mLauncher.getHotseat() != null
+                    && mLauncher.getHotseat().isQsbView(launcherView)) {
+                mLauncher.getHotseat().playQsbSquishAnimation();
+            }
+        };
         AnimatorListenerAdapter endListener = new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
                 super.onAnimationEnd(animation);
                 AccessibilityManagerCompat.sendTestProtocolEventToTest(
                         mLauncher, WALLPAPER_OPEN_ANIMATION_FINISHED_MESSAGE);
+                playQsbSquish.run();
             }
         };
         if (rectFSpringAnim != null) {
+            rectFSpringAnim.addOnUpdateListener((rect, progress) -> {
+                if (progress >= 0.9f) playQsbSquish.run();
+            });
             rectFSpringAnim.addAnimatorListener(endListener);
         } else {
             anim.addListener(endListener);

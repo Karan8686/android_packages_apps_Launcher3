@@ -39,6 +39,7 @@
     <dimen name="spring_loaded_hotseat_top_margin_wide_portrait">64dp</dimen>
 
     <dimen name="dynamic_grid_hotseat_side_padding">0dp</dimen>
+    <dimen name="hotseat_rounded_square_corner_radius">24dp</dimen>
 
     <!-- Scalable Grid -->
     <dimen name="min_qsb_margin">8dp</dimen>

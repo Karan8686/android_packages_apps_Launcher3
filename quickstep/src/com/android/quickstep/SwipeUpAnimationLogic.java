@@ -207,6 +207,11 @@ public abstract class SwipeUpAnimationLogic implements
             return cropRectF.width() / 2f;
         }
 
+        /** Returns true if the animation target is the dock search bar. */
+        public boolean isQsb() {
+            return false;
+        }
+
         public abstract @NonNull AnimatorPlaybackController createActivityAnimationToHome();
 
         public void setSwipeVelocity(float velocity) {
@@ -399,9 +404,12 @@ public abstract class SwipeUpAnimationLogic implements
             return axAnim;
         }
 
-        RectFSpringAnim anim = new RectFSpringAnim(useTaskbarHotseatParams
-                ? new TaskbarHotseatSpringConfig(mContext, startRect, targetRect)
-                : new DefaultSpringConfig(mContext, mDp, startRect, targetRect));
+        RectFSpringAnim anim = homeAnimationFactory.isQsb()
+                ? new RectFSpringAnim(new RectFSpringAnim.QsbSpringConfig(
+                        mContext, mDp, startRect, targetRect))
+                : (useTaskbarHotseatParams
+                ? new RectFSpringAnim(new TaskbarHotseatSpringConfig(mContext, startRect, targetRect))
+                : new RectFSpringAnim(new DefaultSpringConfig(mContext, mDp, startRect, targetRect)));
         homeAnimationFactory.setAnimation(anim);
         SpringAnimationRunner runner = new SpringAnimationRunner(
                 homeAnimationFactory,

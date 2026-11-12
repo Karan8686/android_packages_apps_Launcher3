@@ -36,7 +36,11 @@ public interface FloatingIconViewCompanion {
             ((FloatingIconViewCompanion) view).setIconVisible(visible);
             ((FloatingIconViewCompanion) view).setForceHideDot(!visible);
             ((FloatingIconViewCompanion) view).setForceHideRing(!visible);
-        } else {
+        } else if (view != null && view.getParent() instanceof FloatingIconViewCompanion parentCompanion) {
+            parentCompanion.setIconVisible(visible);
+            parentCompanion.setForceHideDot(!visible);
+            parentCompanion.setForceHideRing(!visible);
+        } else if (view != null) {
             view.setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
         }
     }

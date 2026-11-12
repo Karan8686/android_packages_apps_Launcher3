@@ -348,6 +348,13 @@ internal fun SearchScreen(activity: Activity) {
         }
         if (compactSearchPreference.value) {
             item {
+                BooleanPreference(
+                    item = LauncherPrefsExt.SEARCH_BAR_BLUR,
+                    titleRes = R.string.search_bar_blur_title,
+                    summaryRes = R.string.search_bar_blur_summary,
+                )
+            }
+            item {
                 val actionOptions = listOf(
                     "google_search" to stringResource(R.string.compact_search_bar_action_google),
                     "lens" to stringResource(R.string.compact_search_bar_action_lens),

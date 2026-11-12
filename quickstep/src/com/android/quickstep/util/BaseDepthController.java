@@ -247,6 +247,13 @@ public class BaseDepthController implements LauncherPrefChangeListener {
         }
         mPauseBlurs = pause;
         applyDepthAndBlur();
+        if (mLauncher != null && mLauncher.getHotseat() != null) {
+            mLauncher.getHotseat().postInvalidate();
+        }
+    }
+
+    public boolean isBlursPaused() {
+        return mPauseBlurs;
     }
 
     protected void onInvalidSurface() { }

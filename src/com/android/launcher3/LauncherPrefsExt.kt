@@ -154,6 +154,18 @@ object LauncherPrefsExt {
         backedUpItem("pref_compact_search_bar", false, EncryptionType.SECURE_SETTINGS)
     @JvmField val COMPACT_SEARCH_BAR_ACTION =
         backedUpItem("pref_compact_search_bar_action", "google_search", EncryptionType.SECURE_SETTINGS)
+    @JvmField val SEARCH_BAR_BLUR =
+        backedUpItem("pref_search_bar_blur", true, EncryptionType.SECURE_SETTINGS)
+    @JvmField val SHOW_HOTSEAT_BG =
+        backedUpItem("pref_show_hotseat_bg", false, EncryptionType.SECURE_SETTINGS)
+    @JvmField val HOTSEAT_BLUR =
+        backedUpItem("pref_hotseat_blur", true, EncryptionType.SECURE_SETTINGS)
+    @JvmField val HOTSEAT_SHAPE =
+        backedUpItem("pref_hotseat_shape", "capsule", EncryptionType.SECURE_SETTINGS)
+    @JvmField val HOTSEAT_OPACITY =
+        backedUpItem("pref_hotseat_opacity", 40, EncryptionType.SECURE_SETTINGS)
+    @JvmField val HOTSEAT_QSB_OPACITY =
+        backedUpItem("pref_hotseat_qsb_opacity", 100, EncryptionType.SECURE_SETTINGS)
     @JvmField val WORKSPACE_DOUBLE_TAP_ACTION =
         backedUpItem(
             "pref_workspace_double_tap_action",
@@ -441,6 +453,12 @@ object LauncherPrefsExt {
         HOTSEAT_SEARCH_PROVIDER,
         COMPACT_SEARCH_BAR,
         COMPACT_SEARCH_BAR_ACTION,
+        SEARCH_BAR_BLUR,
+        SHOW_HOTSEAT_BG,
+        HOTSEAT_BLUR,
+        HOTSEAT_SHAPE,
+        HOTSEAT_OPACITY,
+        HOTSEAT_QSB_OPACITY,
         WORKSPACE_DOUBLE_TAP_ACTION,
         ICON_PACK_PACKAGE,
         THEMED_ICONS_ENABLED,

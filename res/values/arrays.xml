@@ -29,4 +29,15 @@
         <item>gemini</item>
     </string-array>
 
+    <!-- Hotseat background shape -->
+    <string-array name="hotseat_shape_entries">
+        <item>@string/hotseat_shape_capsule</item>
+        <item>@string/hotseat_shape_rounded_square</item>
+    </string-array>
+
+    <string-array name="hotseat_shape_values" translatable="false">
+        <item>capsule</item>
+        <item>rounded_square</item>
+    </string-array>
+
 </resources>

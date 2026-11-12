@@ -603,4 +603,18 @@
     <string name="compact_search_bar_action_gemini">Gemini</string>
     <string name="label_gemini_search">Gemini search</string>
     <string name="label_search">Search</string>
+
+    <!-- Hotseat Background -->
+    <string name="hotseat_bg_title">Hotseat background</string>
+    <string name="hotseat_bg_summary">Add translucent background to the app dock</string>
+    <string name="hotseat_blur_title">Hotseat blur</string>
+    <string name="hotseat_blur_summary">Apply blur effect to hotseat background</string>
+    <string name="hotseat_shape_title">Hotseat background shape</string>
+    <string name="hotseat_shape_capsule">Capsule</string>
+    <string name="hotseat_shape_rounded_square">Rounded square</string>
+    <string name="background_opacity_title">Background opacity</string>
+
+    <!-- Search Bar Blur -->
+    <string name="search_bar_blur_title">Search bar blur</string>
+    <string name="search_bar_blur_summary">Apply blur effect to search bar background</string>
 </resources>
