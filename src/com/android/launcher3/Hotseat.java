@@ -47,7 +47,7 @@ import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
 import androidx.core.graphics.ColorUtils;
 
-import com.android.axion.blur.ui.view.AxViewBackdropBlur;
+import com.android.launcher3.graphics.AxBackdropBlurSurface;
 import com.android.launcher3.ShortcutAndWidgetContainer.TranslationProvider;
 import com.android.launcher3.celllayout.CellLayoutLayoutParams;
 import com.android.launcher3.model.data.ItemInfo;
@@ -117,7 +117,7 @@ public class Hotseat extends CellLayout implements Insettable {
     private final View mQsb;
     private final Rect mInsets = new Rect();
 
-    private final AxViewBackdropBlur mBackdropBlur = new AxViewBackdropBlur(this, false);
+    private final AxBackdropBlurSurface mBlurSurface;
     private final GradientDrawable mBackgroundTintDrawable = new GradientDrawable();
     private final Rect mPillRect = new Rect();
     private final Rect mTempCellRect1 = new Rect();
@@ -141,6 +141,7 @@ public class Hotseat extends CellLayout implements Insettable {
 
     public Hotseat(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
+        mBlurSurface = new AxBackdropBlurSurface(this, mActivity);
         mQsb = createQsbView(context);
         bindQsbTag(mQsb);
 
@@ -191,7 +192,6 @@ public class Hotseat extends CellLayout implements Insettable {
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        mBackdropBlur.onAttachedToWindow();
         mCrossWindowBlurEnabled = CrossWindowBlurListeners.getInstance().isCrossWindowBlurEnabled();
         CrossWindowBlurListeners.getInstance().addListener(
                 getContext().getMainExecutor(), mCrossWindowBlurListener);
@@ -207,7 +207,7 @@ public class Hotseat extends CellLayout implements Insettable {
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        mBackdropBlur.onDetachedFromWindow();
+        mBlurSurface.release();
         CrossWindowBlurListeners.getInstance().removeListener(mCrossWindowBlurListener);
         LauncherPrefs.get(getContext()).removeListener(mPrefChangeListener,
                 LauncherPrefsExt.SHOW_HOTSEAT_BG,
@@ -220,32 +220,25 @@ public class Hotseat extends CellLayout implements Insettable {
     @Override
     public void onVisibilityAggregated(boolean isVisible) {
         super.onVisibilityAggregated(isVisible);
-        mBackdropBlur.onVisibilityAggregated(isVisible);
     }
 
     public void updateBackgroundPreferences() {
         Context context = getContext();
-        boolean wasShowingBackground = mShowHotseatBg;
         mShowHotseatBg = LauncherPrefs.get(context).get(LauncherPrefsExt.SHOW_HOTSEAT_BG);
         mHotseatBlur = LauncherPrefs.get(context).get(LauncherPrefsExt.HOTSEAT_BLUR);
         mHotseatShape = LauncherPrefs.get(context).get(LauncherPrefsExt.HOTSEAT_SHAPE);
         mBlurDepth = Math.max(0, LauncherPrefs.get(context).get(LauncherPrefsExt.LAUNCHER_BLUR_RADIUS_PCT));
-        mBackdropBlur.setBlurRadiusPx(mBlurDepth);
-        if (wasShowingBackground != mShowHotseatBg) {
-            postInvalidate();
-        }
+        postInvalidate();
     }
 
     @Override
     protected boolean verifyDrawable(Drawable who) {
-        return super.verifyDrawable(who)
-                || (mBackdropBlur != null && mBackdropBlur.verifyDrawable(who));
+        return super.verifyDrawable(who);
     }
 
     @Override
     protected void dispatchDraw(Canvas canvas) {
         if (!mShowHotseatBg || (mActivity != null && mActivity.getDeviceProfile().isVerticalBarLayout())) {
-            hideHotseatBlur();
             super.dispatchDraw(canvas);
             return;
         }
@@ -261,12 +254,9 @@ public class Hotseat extends CellLayout implements Insettable {
             cornerRadius = Math.min(mPillRect.width(), mPillRect.height()) / 2f;
         }
 
-        if (canvas.isHardwareAccelerated()) {
-            updateBlurState();
-            if (mBackdropBlur.isEnabled()) {
-                mBackdropBlur.draw(canvas, mPillRect.left, mPillRect.top,
-                        mPillRect.right, mPillRect.bottom, cornerRadius);
-            }
+        if (canvas.isHardwareAccelerated() && mHotseatBlur && mBlurSurface.isActive()) {
+            mBlurSurface.drawRect(canvas, mPillRect.left, mPillRect.top,
+                    mPillRect.right, mPillRect.bottom, cornerRadius);
         }
 
         if (mBackgroundTintDrawable.getCornerRadius() != cornerRadius) {
@@ -360,30 +350,9 @@ public class Hotseat extends CellLayout implements Insettable {
                         + iconSize / 2f + paddingY + containerTy));
     }
 
-    private boolean canBlurHotseat() {
-        return mShowHotseatBg && mHotseatBlur && mCrossWindowBlurEnabled && mBlurDepth > 0
-                && mCountX > 0 && mCountY > 0 && mCellWidth > 0 && mCellHeight > 0
-                && isAttachedToWindow() && isHardwareAccelerated() && isShown()
-                && getWindowVisibility() == VISIBLE;
-    }
-
-    private void updateBlurState() {
-        mBackdropBlur.setEnabled(canBlurHotseat());
-        mBackdropBlur.setSurfaceAlpha(Math.round(255f
-                * Utilities.boundToRange(mShortcutsAndWidgets.getAlpha(), 0f, 1f)));
-    }
-
-    private void hideHotseatBlur() {
-        mBackdropBlur.setEnabled(false);
-    }
-
     private void onCrossWindowBlurEnabledChanged(boolean enabled) {
         mCrossWindowBlurEnabled = enabled;
-        if (!enabled) {
-            hideHotseatBlur();
-        } else {
-            postInvalidate();
-        }
+        postInvalidate();
     }
 
     private boolean isCompactSearchBarEnabled() {
