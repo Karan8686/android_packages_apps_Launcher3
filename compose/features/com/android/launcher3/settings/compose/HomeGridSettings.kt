@@ -16,11 +16,31 @@
 package com.android.launcher3.settings.compose
 
 import android.content.res.Configuration
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.android.axion.compose.preferences.PreferenceGroup
 import com.android.launcher3.AxWorkspaceDisplayPrefs
 import com.android.launcher3.ConstantItem
@@ -90,14 +110,132 @@ internal fun HomeGridScreen() {
             max = AxWorkspaceDisplayPrefs.MAX_TABLET_GRID_SIZE,
         )
     } else {
-        HomeGridPreferenceGroup(
-            title = stringResource(R.string.home_grid_category),
-            columnsItem = LauncherPrefsExt.WORKSPACE_GRID_COLUMNS,
-            rowsItem = LauncherPrefsExt.WORKSPACE_GRID_ROWS,
-            hotseatIconsItem = LauncherPrefsExt.WORKSPACE_HOTSEAT_ICONS,
-            preview = preview,
-            max = AxWorkspaceDisplayPrefs.MAX_GRID_SIZE,
-        )
+        HomeGridPresetGroup(preview)
+    }
+}
+
+private data class GridPreset(
+    val columns: Int,
+    val rows: Int,
+    val hotseatIcons: Int,
+)
+
+private val PHONE_GRID_PRESETS = listOf(
+    GridPreset(columns = 4, rows = 6, hotseatIcons = 4),
+    GridPreset(columns = 5, rows = 6, hotseatIcons = 5),
+)
+
+@Composable
+private fun HomeGridPresetGroup(preview: HomePreviewState) {
+    val columnsPreference = rememberLauncherPreference(LauncherPrefsExt.WORKSPACE_GRID_COLUMNS)
+    val rowsPreference = rememberLauncherPreference(LauncherPrefsExt.WORKSPACE_GRID_ROWS)
+    val hotseatPreference = rememberLauncherPreference(LauncherPrefsExt.WORKSPACE_HOTSEAT_ICONS)
+
+    Text(
+        text = stringResource(R.string.home_grid_category),
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        PHONE_GRID_PRESETS.forEach { preset ->
+            GridPresetCard(
+                preset = preset,
+                selected = preview.columns == preset.columns && preview.rows == preset.rows,
+                onClick = {
+                    columnsPreference.onChange(preset.columns)
+                    rowsPreference.onChange(preset.rows)
+                    hotseatPreference.onChange(preset.hotseatIcons)
+                },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun GridPresetCard(
+    preset: GridPreset,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(18.dp),
+        color = if (selected) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceBright
+        },
+        contentColor = if (selected) {
+            MaterialTheme.colorScheme.onPrimaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        },
+        border = if (selected) {
+            null
+        } else {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        },
+        modifier = modifier.height(156.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 10.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            GridPresetPreview(
+                columns = preset.columns,
+                rows = preset.rows,
+                selected = selected,
+            )
+            Text(
+                text = stringResource(R.string.home_grid_preset_label, preset.columns, preset.rows),
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 10.dp),
+            )
+            Text(
+                text = stringResource(
+                    R.string.home_grid_preset_summary,
+                    preset.columns,
+                    preset.rows,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
+@Composable
+private fun GridPresetPreview(
+    columns: Int,
+    rows: Int,
+    selected: Boolean,
+) {
+    val cellColor = MaterialTheme.colorScheme.onSurface.copy(
+        alpha = if (selected) 0.85f else 0.5f,
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        repeat(rows) {
+            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                repeat(columns) {
+                    Box(
+                        modifier = Modifier
+                            .size(9.dp)
+                            .clip(RoundedCornerShape(2.5.dp))
+                            .background(cellColor),
+                    )
+                }
+            }
+        }
     }
 }
 

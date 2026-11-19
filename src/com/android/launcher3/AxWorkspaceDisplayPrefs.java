@@ -42,6 +42,7 @@ public final class AxWorkspaceDisplayPrefs extends AxPreferenceFeature {
     public static final int MIN_GRID_SIZE = 3;
     public static final int MAX_GRID_SIZE = 10;
     public static final int MAX_TABLET_GRID_SIZE = 16;
+    private static final int MAX_PHONE_FOLDER_COLUMNS = 4;
     private static final int DEFAULT_PERCENT = 100;
     private static final int MIN_PERCENT = 50;
     private static final int MAX_PERCENT = 150;
@@ -94,6 +95,7 @@ public final class AxWorkspaceDisplayPrefs extends AxPreferenceFeature {
         }
         profile.numSearchContainerColumns = Math.min(profile.numSearchContainerColumns,
                 profile.numColumns);
+        applyPhoneFolderGrid(profile);
         profile.iconSize = scale(profile.iconSize, getPercent(context, WORKSPACE_ICON_SCALE), 0f);
         profile.iconTextSize = scale(profile.iconTextSize,
                 getPercent(context, WORKSPACE_LABEL_SCALE), 1f);
@@ -118,6 +120,26 @@ public final class AxWorkspaceDisplayPrefs extends AxPreferenceFeature {
             return defaultSize;
         }
         return Utilities.boundToRange(size, MIN_GRID_SIZE, maxSize);
+    }
+
+    /**
+     * Matches the OOS folder grid on phones: 3 columns x 4 rows on a 4-column workspace
+     * (4x4 on a 5-column workspace), so folders keep OOS proportions and fit on screen.
+     */
+    private void applyPhoneFolderGrid(InvariantDeviceProfile profile) {
+        if (profile.deviceType != InvariantDeviceProfile.TYPE_PHONE) {
+            return;
+        }
+        int[] folderColumns = profile.numFolderColumns.clone();
+        int[] folderRows = profile.numFolderRows.clone();
+        for (int i = 0; i < folderColumns.length; i++) {
+            int columns = Utilities.boundToRange(profile.numColumns - 1, 2,
+                    MAX_PHONE_FOLDER_COLUMNS);
+            folderColumns[i] = columns;
+            folderRows[i] = columns == 2 ? 3 : 4;
+        }
+        profile.numFolderColumns = folderColumns;
+        profile.numFolderRows = folderRows;
     }
 
     private ConstantItem<Integer> getColumnsItem(InvariantDeviceProfile profile) {

@@ -71,6 +71,8 @@
     <string name="home_grid_columns_title">Columns</string>
     <string name="home_grid_rows_title">Rows</string>
     <string name="home_grid_hotseat_icons_title">Dock icons</string>
+    <string name="home_grid_preset_label">%1$d × %2$d</string>
+    <string name="home_grid_preset_summary">%1$d columns · %2$d rows</string>
     <string name="home_icon_size_title">Icon size</string>
     <string name="home_label_size_title">Label size</string>
     <string name="home_wallpaper_scrolling_title">Wallpaper scrolling</string>
@@ -297,6 +299,8 @@
     <string name="icon_pack_description">Use a third-party icon pack for home screen and app drawer icons</string>
     <string name="icon_pack_system_default">System default</string>
     <string name="icon_pack_system_icons">System icons</string>
+    <string name="icon_pack_oos">OxygenOS icons</string>
+    <string name="oos_icon_shape_title">OxygenOS</string>
     <string name="icon_source_title">Source</string>
     <string name="themed_icons_card_title">Themed icons</string>
     <string name="themed_icons_description">Monochrome icons that adapt to your colors</string>

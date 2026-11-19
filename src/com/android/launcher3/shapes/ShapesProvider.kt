@@ -35,6 +35,9 @@ object ShapesProvider {
     private const val TAPERED_RECT_PATH = "M20,0 80,0 100,20 100,80 80,100 20,100 0,80 0,20 20,0 Z"
     private const val TEARDROP_PATH = "M50,0 C77.6,0 100,22.4 100,50 L100,88 C100,94.6 94.6,100 88,100 L50,100 C22.4 100 0 77.6 0 50C0 22.4 22.4 0 50 0 Z"
     private const val ROUNDED_RECT_PATH = "M50,0L88,0 C94.4,0 100,5.4 100 12 L100,88 C100,94.6 94.6 100 88 100 L12,100 C5.4,100 0,94.6 0,88 L0 12 C0 5.4 5.4 0 12 0 L50,0 Z"
+    // OxygenOS "leaf" icon mask (res/values/strings.xml: ux_icon_mask_leaf), normalized to 100.
+    private const val OOS_PATH =
+        "M11.9648,0 L58.1799,0 C71.945,0 77.5153,1.5471 82.9474,4.4522 C88.3795,7.3573 92.6427,11.6205 95.5478,17.0526 C98.4529,22.4847 100,28.055 100,41.8201 L100,88.0352 C100,92.1956 99.5668,93.7043 98.7534,95.2253 C97.9399,96.7463 96.7463,97.9399 95.2253,98.7534 C93.7043,99.5668 92.1956,100 88.0352,100 L41.8201,100 C28.055,100 22.4847,98.4529 17.0526,95.5478 C11.6205,92.6427 7.3573,88.3795 4.4522,82.9474 C1.5471,77.5153 0,71.945 0,58.1799 L0,11.9648 C0,7.8044 0.4332,6.2957 1.2466,4.7747 C2.0601,3.2537 3.2537,2.0601 4.7747,1.2466 C6.2957,0.4332 7.8044,0 11.9648,0 Z"
     const val CIRCLE_KEY = "circle"
     const val SQUARE_KEY = "square"
     const val FOUR_SIDED_COOKIE_KEY = "four_sided_cookie"
@@ -47,6 +50,7 @@ object ShapesProvider {
     const val TAPERED_RECT_KEY = "tapered_rect"
     const val TEARDROP_KEY = "teardrop"
     const val ROUNDED_RECT_KEY = "rounded_rect"
+    const val OOS_KEY = "oos"
 
     val iconShapes: Array<IconShapeModel> =
         arrayOf(
@@ -129,6 +133,14 @@ object ShapesProvider {
                     pathString = ROUNDED_RECT_PATH,
                     folderRadiusRatio = 1 / 4f,
                     shapeRadius = 8f,
+                ),
+                IconShapeModel(
+                    key = OOS_KEY,
+                    titleId = R.string.oos_icon_shape_title,
+                    pathString = OOS_PATH,
+                    // OOS folder_bg_radius is 9dp on a 56dp icon
+                    folderRadiusRatio = 9 / 28f,
+                    shapeRadius = 16f,
                 ),
             )
 }

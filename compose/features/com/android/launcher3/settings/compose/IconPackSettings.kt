@@ -125,6 +125,7 @@ internal fun IconSettingsScreen() {
     val disableAdaptiveIconsPreference =
         rememberLauncherPreference(LauncherPrefsExt.DISABLE_ADAPTIVE_ICONS)
     val isAdaptiveDisabled = disableAdaptiveIconsPreference.value
+    val shapePreference = rememberLauncherPreference(ThemeManager.PREF_ICON_SHAPE)
 
     val showAdaptiveToggle = section == IconSettingsSection.ICON_PACK && isThirdPartyIconPack
 
@@ -135,7 +136,7 @@ internal fun IconSettingsScreen() {
     )
     val themedIconsEnabled = when (section) {
         IconSettingsSection.ICON_PACK -> {
-            IconPackSourceGroup(packs)
+            IconPackSourceGroup(packs, shapePreference)
             false
         }
         IconSettingsSection.THEMED_ICONS -> {
@@ -145,7 +146,6 @@ internal fun IconSettingsScreen() {
 
     val showIconShapes = section == IconSettingsSection.THEMED_ICONS || !isAdaptiveDisabled
     if (showIconShapes) {
-        val shapePreference = rememberLauncherPreference(ThemeManager.PREF_ICON_SHAPE)
         val shapes = ShapesProvider.iconShapes
         val defaultMask = remember(context) {
             val resId = context.resources.getIdentifier("config_icon_mask", "string", "android")
@@ -423,7 +423,10 @@ private fun IconSettingsSectionChips(
 }
 
 @Composable
-private fun IconPackSourceGroup(packs: List<IconPackInfo>) {
+private fun IconPackSourceGroup(
+    packs: List<IconPackInfo>,
+    shapePreference: PreferenceState<String>,
+) {
     val context = LocalContext.current
     val iconPackPreference = rememberLauncherPreference(
         item = LauncherPrefsExt.ICON_PACK_PACKAGE,
@@ -434,13 +437,21 @@ private fun IconPackSourceGroup(packs: List<IconPackInfo>) {
     )
     val themedIconsPreference = rememberLauncherPreference(LauncherPrefsExt.THEMED_ICONS_ENABLED)
     val systemIcon = rememberSystemIcon()
-    val options = remember(context, packs, systemIcon) {
+    val oosIcon = remember(context) { context.getDrawable(R.drawable.ic_oos_icon_style) }
+    val options = remember(context, packs, systemIcon, oosIcon) {
         buildList {
             add(
                 IconSourceOption(
                     value = ICON_SOURCE_SYSTEM,
                     label = context.getString(R.string.icon_pack_system_icons),
                     icon = systemIcon,
+                )
+            )
+            add(
+                IconSourceOption(
+                    value = OOS_ICON_SOURCE,
+                    label = context.getString(R.string.icon_pack_oos),
+                    icon = oosIcon,
                 )
             )
             packs.forEach { pack ->
@@ -450,15 +461,46 @@ private fun IconPackSourceGroup(packs: List<IconPackInfo>) {
     }
     IconSourceCardRow(
         options = options,
-        selectedValue = if (themedIconsPreference.value) null else iconPackPreference.value,
-        onSelected = {
-            iconPackPreference.onChange(it)
-            themedIconsPreference.onChange(false)
-            ThemeManager.INSTANCE.get(context).isMonoThemeEnabled = false
-            IconPackDrawableResolver.clearCache(null)
-            IconChangeTracker.INSTANCE.get(context).notifyAllIconsChanged()
+        selectedValue = when {
+            themedIconsPreference.value -> null
+            shapePreference.value == ShapesProvider.OOS_KEY &&
+                iconPackPreference.value.isEmpty() -> OOS_ICON_SOURCE
+            else -> iconPackPreference.value
+        },
+        onSelected = { source ->
+            if (source == OOS_ICON_SOURCE) {
+                applyOosIconStyle(
+                    context = context,
+                    iconPackPreference = iconPackPreference,
+                    themedIconsPreference = themedIconsPreference,
+                    shapePreference = shapePreference,
+                )
+            } else {
+                if (shapePreference.value == ShapesProvider.OOS_KEY) {
+                    shapePreference.onChange("")
+                }
+                iconPackPreference.onChange(source)
+                themedIconsPreference.onChange(false)
+                ThemeManager.INSTANCE.get(context).isMonoThemeEnabled = false
+                IconPackDrawableResolver.clearCache(null)
+                IconChangeTracker.INSTANCE.get(context).notifyAllIconsChanged()
+            }
         },
     )
+}
+
+private fun applyOosIconStyle(
+    context: Context,
+    iconPackPreference: PreferenceState<String>,
+    themedIconsPreference: PreferenceState<Boolean>,
+    shapePreference: PreferenceState<String>,
+) {
+    shapePreference.onChange(ShapesProvider.OOS_KEY)
+    iconPackPreference.onChange(ICON_SOURCE_SYSTEM)
+    themedIconsPreference.onChange(false)
+    ThemeManager.INSTANCE.get(context).isMonoThemeEnabled = false
+    IconPackDrawableResolver.clearCache(null)
+    IconChangeTracker.INSTANCE.get(context).notifyAllIconsChanged()
 }
 
 @Composable
@@ -904,6 +946,7 @@ private enum class IconSettingsSection(@StringRes val titleRes: Int) {
 
 private const val ANDROID_PACKAGE = "android"
 private const val ICON_SOURCE_SYSTEM = ""
+private const val OOS_ICON_SOURCE = "__oos__"
 private const val THEMED_SOURCE_DEFAULT = "__default__"
 private val ICON_COLOR_PALETTE = listOf(
     0xFFFFFFFF.toInt(),
